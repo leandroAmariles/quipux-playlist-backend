@@ -96,6 +96,16 @@ playlist:
     max-output-tokens: 600
     max-concurrent-calls: 2
     requests-per-minute: 10
+    # Groups the traces of the calls, such as those of one evaluation.
+    trace-session: ${AI_TRACE_SESSION:}
+    # The prompt labelled production in Langfuse. Without address and keys, the one of the file is used.
+    langfuse:
+      host: ${LANGFUSE_HOST:}
+      public-key: ${LANGFUSE_PUBLIC_KEY:}
+      secret-key: ${LANGFUSE_SECRET_KEY:}
+      prompt-name: recomendaciones-v2
+      timeout: 1s
+      cache-ttl: 60s
     cache:
       ttl: 24h
       max-entries: 500

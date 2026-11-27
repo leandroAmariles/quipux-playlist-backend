@@ -28,6 +28,19 @@ updates:
       - dependency-name: maven
         update-types: ["version-update:semver-major"]
 
+  # The offline evaluation (RAGAS) has its own Python environment.
+  - package-ecosystem: uv
+    directory: /evaluation
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    ignore:
+      # ragas 0.4 does not import with langchain-community 0.4.
+      - dependency-name: langchain-community
+        versions: ["[0.4,)"]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

@@ -1,0 +1,77 @@
+# HU-14: casos de prueba de la especificacion (spec.md). Ejecutar de arriba abajo.
+#
+# La API HTTP no cambia: solo cambia el valor de versionPrompt segun de donde venga el prompt.
+# DC = docker compose -p quipux-ia -f compose.yaml -f compose.ai.yaml -f compose.langfuse.yaml
+# Antes de empezar: composicion en marcha y prompt publicado (python tools/langfuse/publish_prompt.py).
+#
+# Not covered here (no se alcanzan por HTTP de esta API):
+#   US1, US4, FR-001 a FR-008  evaluacion: evaluation/ (pytest y evaluate.py), RecommendationEvaluationApplicationTest
+#   US2, FR-009, FR-010        trazas: se revisan en Langfuse (quickstart.md, paso 4)
+#   US3-1 a US3-3, FR-011      publicacion: tools/langfuse/test_publish_prompt.py y quickstart.md, paso 3
+#   US3-6, FR-012, FR-015      cache del prompt y claves: LangfusePromptSourceTest, RecommendationLangfuseApiTest
+
+@baseUrl = http://localhost:8080
+# El valor de DEMO_USER_PASSWORD y el de DEMO_ADMIN_PASSWORD. No guardarlos en el repositorio.
+@userPassword = <contrasena-user>
+@adminPassword = <contrasena-admin>
+
+### Preparacion: token de admin — expects 200
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": "{{adminPassword}}"}
+
+> {% client.global.set("adminToken", response.body.accessToken); %}
+
+### Preparacion: token de user — expects 200
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "user", "password": "{{userPassword}}"}
+
+> {% client.global.set("userToken", response.body.accessToken); %}
+
+### Preparacion: lista para el prompt de Langfuse — expects 201
+POST {{baseUrl}}/lists
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{"nombre": "hu14-a", "descripcion": "HU-14", "canciones": [
+  {"titulo": "Bohemian Rhapsody", "artista": "Queen", "album": "A Night at the Opera", "anno": "1975", "genero": "rock"}
+]}
+
+### Preparacion: lista para la caida de Langfuse — expects 201
+POST {{baseUrl}}/lists
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{"nombre": "hu14-b", "descripcion": "HU-14", "canciones": [
+  {"titulo": "So What", "artista": "Miles Davis", "album": "Kind of Blue", "anno": "1959", "genero": "jazz"}
+]}
+
+### US3-4 / FR-014 "usa la version production" — expects 200, origen IA, versionPrompt v2-lf<n>
+GET {{baseUrl}}/lists/hu14-a/recommendations
+Authorization: Bearer {{userToken}}
+
+> {% client.test("200", function () { client.assert(response.status === 200); }); %}
+
+### US3-5 / FR-013 "Langfuse detenido" — antes: DC stop langfuse-web y esperar 60 s.
+### expects 200, versionPrompt v2 (si origen es IA)
+GET {{baseUrl}}/lists/hu14-b/recommendations
+Authorization: Bearer {{userToken}}
+
+> {% client.test("200", function () { client.assert(response.status === 200); }); %}
+
+### US1-6 / FR-005 / SC-005 "los contextos no se exponen" — expects 200 sin candidatas en la respuesta
+GET {{baseUrl}}/lists/hu14-a/recommendations
+Authorization: Bearer {{userToken}}
+
+> {% client.test("sin candidatas", function () { client.assert(response.body.candidatas === undefined); }); %}
+
+### Limpieza — expects 204
+DELETE {{baseUrl}}/lists/hu14-a
+Authorization: Bearer {{adminToken}}
+
+### Limpieza — expects 204
+DELETE {{baseUrl}}/lists/hu14-b
+Authorization: Bearer {{adminToken}}

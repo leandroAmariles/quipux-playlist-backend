@@ -405,9 +405,36 @@ El prompt está en [`prompts/recommendations/v2.txt`](infrastructure/src/main/re
 La lista por defecto necesita al menos 5 canciones completas con géneros de la lista local: si cambias
 `playlist.genres.local-file`, revisa también `playlist.ai.default-recommendations-file`, o la aplicación no arrancará.
 
+### Prompt y trazas en Langfuse
+
+Es opcional. Sin `LANGFUSE_HOST` y las dos claves, el prompt es el del repositorio y no se consulta nada.
+
+| Variable | Para qué |
+|---|---|
+| `LANGFUSE_HOST` | dirección de Langfuse |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | claves del proyecto; solo por entorno |
+| `AI_TRACE_SESSION` | agrupa las trazas, por ejemplo las de una evaluación |
+
+- El archivo de Git sigue siendo la fuente oficial. `python tools/langfuse/publish_prompt.py` lo publica como
+  `recomendaciones-v2` con la etiqueta `production` y el commit; no publica cambios sin confirmar ni repite versiones.
+- El backend usa la versión `production` y `versionPrompt` pasa a ser `v2-lf<n>`. Si Langfuse falla, tarda más de
+  1 s, no tiene el prompt o su texto no respeta el formato, usa el archivo (`v2`). El resultado, bueno o malo, se
+  guarda 60 s (`playlist.ai.langfuse.*`).
+- Las trazas las envía LiteLLM, una por llamada de chat, con la versión del prompt como versión de la traza. No
+  incluyen el texto de los mensajes.
+
+### Evaluación
+
+[`evaluation/`](evaluation/README.md) mide las recomendaciones con RAGAS y comprobaciones deterministas:
+`uv run python evaluate.py`. La línea base está en [`evaluation/BASELINE.md`](evaluation/BASELINE.md).
+
 ## Autoría IA
 
-Esta sección describe HU-12 (recomendaciones con IA) y HU-13 (catálogo). El registro está en [`AI-LOG.md`](AI-LOG.md).
+Esta sección describe HU-12 (recomendaciones con IA), HU-13 (catálogo) y HU-14 (evaluación y trazas). El registro está en [`AI-LOG.md`](AI-LOG.md).
+
+En HU-14 el asistente de IA escribió la especificación, el plan, las tareas, el código, las pruebas, los casos de
+evaluación, la composición de Langfuse y esta documentación. La persona usuaria pidió la historia completa y
+rápida. **Ninguna persona ha revisado todavía el código, los casos ni las puntuaciones.**
 
 En HU-13 el asistente de IA escribió la especificación, el plan, las tareas, el código, las pruebas, la composición, la
 lista de canciones y esta documentación. **Ninguna persona ha revisado todavía el código ni la lista de canciones.**

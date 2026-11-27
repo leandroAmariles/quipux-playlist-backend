@@ -14,3 +14,8 @@ target/
 *.tmp
 # Local AI usage telemetry
 specs/*/.token-usage.json
+# Evaluation environment and its reports
+evaluation/.venv/
+evaluation/reports/
+__pycache__/
+.pytest_cache/

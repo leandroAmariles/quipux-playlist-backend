@@ -12,6 +12,14 @@ public interface RecommendationProviderPort {
     ProviderIdentity identity();
 
     /**
+     * The provider as it will serve one request: its identity and its choice refer to the same prompt, even if the
+     * prompt changes meanwhile.
+     */
+    default Mono<RecommendationProviderPort> current() {
+        return Mono.just(this);
+    }
+
+    /**
      * Which candidates fit the songs, best first, and why. The choices are not verified: the domain does it. Signals
      * an error when the provider cannot answer.
      */

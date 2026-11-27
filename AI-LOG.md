@@ -135,6 +135,58 @@ Cada entrada dice qué se pidió, qué devolvió la IA, qué se aceptó o correg
   única omitida solo corre en CI), líneas cubiertas por encima del 95 % en cada módulo, `docker compose config` válido y
   sin claves ni datos personales en los commits de las ramas.
 
+### P14 · 2026-11-27 · HU-14: especificación, plan, tareas e implementación
+
+- **Prompt:** "Genera la especificacion de la US HU-14, necsito que se implemente rapido, luego de la especificacion
+  genera el plan, tareas y luego imlementacion, optimiza el tiempo."
+- **Devuelto:** `specs/14-evaluation-traces/`, modo interno de evaluación, `evaluation/`, prompt desde Langfuse,
+  script de publicación, `compose.langfuse.yaml` y documentación. La web ya estaba entregada.
+- **Aceptado o corregido:** sin revisión de una persona. Correcciones del propio asistente tras ejecutar:
+  - el `include` de LiteLLM pisaba `litellm_settings` y el envío de trazas se perdía: modelos movidos a `models.yaml`;
+  - la evaluación usaba el prompt del archivo porque la primera consulta de una JVM supera 1 s: más margen solo ahí;
+  - el juez local devolvía formato inválido: salida con esquema en lugar de texto libre.
+- **Verificado:** 770 pruebas Java y `mvn verify` en verde; 7 pruebas de `evaluation/` y 3 del script; con la pila
+  real: publicación sin duplicados, una traza por llamada con versión `v2-lf1`, Langfuse detenido y claves fuera del
+  registro de `api`.
+- **Sin verificar:** evaluación completa de los 18 casos, línea base, puntuaciones vistas en Langfuse y
+  `requests.http`.
+
+### P15 · 2026-11-27 · HU-14: evaluación completa
+
+- **Prompt:** "Ya se reinicio docker"
+- **Devuelto:** ejecución de los 18 casos, `evaluation/BASELINE.md` y revisión de una muestra.
+- **Aceptado o corregido:** sin revisión de una persona. Los tiempos agotados de P14 eran por falta de memoria.
+- **Verificado:** 71 de 72 puntuaciones calculadas y las comprobaciones deterministas en los 18 casos; 18 trazas para
+  18 llamadas, sin trazas del juez; cinco puntuaciones en Langfuse con `v2-lf1`.
+- **Hallazgo:** `llama3.2:3b` escribe motivos falsos (artista, año o género que no son) y como juez no es fiable caso
+  a caso.
+
+### P16 · 2026-11-27 · HU-14: cierre, commits y PR
+
+- **Prompt:** "Dale cierre a la HU"
+- **Devuelto:** commits, integración de `main` (HU-10 y HU-11) sin conflictos y PR de backend e infra.
+- **Verificado con `main` integrado:** `mvn verify` en verde (812 pruebas, 1 omitida), 7 pruebas de `evaluation/`, 3 del
+  script y compose válido. No se repitió el recorrido con la pila real ni la evaluación.
+- **Sigue abierto:** revisión de la muestra por una persona, memoria de Docker sin ampliar y motivos falsos del modelo.
+
+### P17 · 2026-11-27 · Fallo del CI de HU-14
+
+- **Prompt:** "El CI fallo"
+- **Respuesta:** Qodana marcaba `DataFlowIssue` en `RecommendationEvaluationApplication`: `block()` podía devolver
+  `null`. Ahora una lista sin resultado detiene la evaluación de forma explícita. Aparte, `verify` no terminaba en el
+  CI, igual que en `main` antes de HU-14: la última ejecución de `main` se canceló por tiempo.
+- **Verificación:** `RecommendationEvaluationApplicationTest` y Checkstyle en verde en local. Qodana y `verify` los
+  comprueba el CI de la PR.
+
+### P18 · 2026-11-27 · HU-14: integrar el arreglo del CI
+
+- **Prompt:** "ya esta el cambio en main"
+- **Respuesta:** el cuelgue de `verify` quedó resuelto en `main` con la PR #30, que reinicia los schedulers antes de
+  instalar BlockHound. El asistente había llegado al mismo arreglo en un commit local, que no se subió. Se integró
+  `main` en la rama de HU-14.
+- **Verificación:** en Linux, antes del arreglo, `PlaylistNonBlockingTest` se colgaba 3 de 3 y con él pasaba 3 de 3.
+  Con `main` integrado, `mvn clean verify` en verde en local (813 pruebas, 1 omitida). El CI de la PR lo confirma aparte.
+
 ## 2. Prompt de generación del cliente
 
 Redactado el 2026-11-27 (T028) a partir del puerto, el contrato y los requisitos de `spec.md`, sin las conclusiones de la investigación ni del plan.
@@ -1463,3 +1515,14 @@ Todos los casos los escribió la IA; no consta ninguno añadido a mano.
 
 Casos de HU-12 que dejaron de aplicar: los de sugerencias libres (campos incompletos y repetidos por título y artista),
 sustituidos por los de identificadores desconocidos y repetidos, porque el modelo ya solo elige entre candidatas.
+
+### HU-14
+
+Todos los casos los escribió la IA; no consta ninguno añadido a mano.
+
+| Archivo de pruebas | Casos | Origen |
+|---|---|---|
+| `EvaluateRecommendationsUseCaseTest`, `RecommendationEvaluationApplicationTest` | modo interno de evaluación | IA |
+| `LangfusePromptSourceTest`, `RecommendationLangfuseApiTest` | prompt remoto, caída, caché y metadatos de la traza | IA |
+| `GetRecommendationsUseCaseTest`, `ErrorMessageEnumTest` (ampliadas) | proveedor fijado por petición y códigos | IA |
+| `evaluation/tests/test_checks.py`, `tools/langfuse/test_publish_prompt.py` | comprobaciones, casos y publicación | IA |
