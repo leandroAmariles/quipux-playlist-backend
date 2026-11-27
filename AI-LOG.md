@@ -66,6 +66,17 @@ Cada entrada dice qué se pidió, qué devolvió la IA, qué se aceptó o correg
   pruebas) fue sobre `5daffc2` más estos cambios; lo integrado y añadido después es documentación y la
   configuración de Dependabot.
 
+### P07 · 2026-11-27 · Fallo de Qodana en el CI
+
+- **Prompt**: «El CI de qdana fallo»
+- **Respuesta**: Qodana marcaba `DataFlowIssue` en `SlidingWindowRequestQuotaAdapter`. Era un fallo real: con
+  `requests-per-minute` menor que 1, cada petición acababa en un `NullPointerException`. Ahora la aplicación no
+  arranca con ese valor y la cola se lee con `getFirst()`.
+- **Aceptado o corregido**: pendiente de la revisión de la PR. Ni la revisión del asistente ni sus pruebas lo habían
+  detectado.
+- **Verificación**: la prueba nueva falló antes del cambio y pasa después; `SlidingWindowRequestQuotaAdapterTest` y
+  `ErrorMessageEnumTest` en verde. El resto lo comprueba el CI de la PR.
+
 ## 2. Prompt de generación del cliente
 
 Redactado el 2026-11-27 (T028) a partir del puerto, el contrato y los requisitos de `spec.md`, sin las conclusiones de la investigación ni del plan.
@@ -1373,3 +1384,4 @@ Hallados al implementar, no en el código generado:
 | `RecommendationLimitsApiTest` | escenarios de la US5 de extremo a extremo | IA |
 | `OpenApiContractTest` (ampliada) | cabecera `Retry-After` | IA |
 | `RecommendationNonBlockingTest` y `PlaylistNonBlockingTest` (ampliada) | BlockHound en todos los caminos | IA |
+| `SlidingWindowRequestQuotaAdapterTest` (ampliada) | límite de peticiones menor que 1 | IA |
