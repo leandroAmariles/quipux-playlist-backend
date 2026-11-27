@@ -15,6 +15,7 @@ import com.quipux.playlist.application.port.out.PlaylistRepositoryPort;
 import com.quipux.playlist.application.port.out.RecommendationCachePort;
 import com.quipux.playlist.application.port.out.RecommendationProviderPort;
 import com.quipux.playlist.application.port.out.RequestQuotaPort;
+import com.quipux.playlist.application.port.out.SongCatalogPort;
 import com.quipux.playlist.application.port.out.TokenIssuerPort;
 import com.quipux.playlist.application.port.out.UserRepositoryPort;
 import com.quipux.playlist.application.usecase.CreatePlaylistUseCase;
@@ -25,7 +26,10 @@ import com.quipux.playlist.application.usecase.GetPlaylistsUseCase;
 import com.quipux.playlist.application.usecase.GetRecommendationsUseCase;
 import com.quipux.playlist.application.usecase.LoginUseCase;
 import com.quipux.playlist.application.usecase.RegisterDemoUsersUseCase;
+import com.quipux.playlist.domain.model.constants.RecommendationConstraints;
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -67,10 +71,15 @@ public class UseCaseConfig {
     GetRecommendationsPort getRecommendationsPort(
             PlaylistRepositoryPort repository,
             RecommendationProviderPort provider,
+            SongCatalogPort catalog,
             DefaultRecommendationsPort defaultRecommendations,
             RecommendationCachePort cache,
-            RequestQuotaPort quota) {
-        return new GetRecommendationsUseCase(repository, provider, defaultRecommendations, cache, quota);
+            RequestQuotaPort quota,
+            @Value("${playlist.catalog.candidates:" + RecommendationConstraints.MAX_CANDIDATES + "}")
+            int maxCandidates,
+            @Value("${playlist.ai.timeout:30s}") Duration timeout) {
+        return new GetRecommendationsUseCase(
+                repository, provider, catalog, defaultRecommendations, cache, quota, maxCandidates, timeout);
     }
 
     @Bean

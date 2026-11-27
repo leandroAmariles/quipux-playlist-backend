@@ -1,7 +1,7 @@
 package com.quipux.playlist.infrastructure.out.recommendation;
 
 import com.quipux.playlist.domain.exception.RecommendationProviderUnavailableException;
-import com.quipux.playlist.domain.model.Recommendation;
+import com.quipux.playlist.domain.model.ModelChoice;
 import com.quipux.playlist.domain.model.enums.ErrorMessageEnum;
 import java.util.List;
 import java.util.stream.Stream;
@@ -11,28 +11,30 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Reads the shape of what the model answered: exactly one JSON object with the suggestions. An entry with a field of
- * another type is discarded on its own. What may be delivered is decided by the domain.
+ * Reads the shape of what the model answered: exactly one JSON object with its choices. Only the identifier and the
+ * reason are taken. An entry with a field of another type, or with an identifier that was not offered, is discarded
+ * on its own. What may be delivered is decided by the domain.
  */
 public class LlmResponseParser {
 
-    private static final String SUGGESTIONS = "recomendaciones";
-    private static final List<String> FIELDS = List.of("titulo", "artista", "genero", "motivo");
+    private static final String CHOICES = "recomendaciones";
+    private static final String ID = "idCatalogo";
+    private static final String REASON = "motivo";
 
     private final JsonMapper mapper = JsonMapper.builder()
             .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
             .build();
 
-    public List<Recommendation> parse(String content) {
+    public List<ModelChoice> parse(String content, CandidateAliases candidates) {
         if (content == null || content.isBlank()) {
             throw unavailable(ErrorMessageEnum.RECOMMENDATION_PROVIDER_EMPTY);
         }
-        JsonNode entries = read(content).path(SUGGESTIONS);
+        JsonNode entries = read(content).path(CHOICES);
         if (!entries.isArray()) {
             throw unavailable(ErrorMessageEnum.RECOMMENDATION_PROVIDER_UNREADABLE);
         }
         return entries.valueStream()
-                .flatMap(LlmResponseParser::suggestionOf)
+                .flatMap(entry -> choiceOf(entry, candidates))
                 .toList();
     }
 
@@ -45,20 +47,16 @@ public class LlmResponseParser {
         }
     }
 
-    private static Stream<Recommendation> suggestionOf(JsonNode entry) {
-        boolean wellTyped = entry.isObject() && FIELDS.stream()
-                .map(entry::path)
-                .allMatch(field -> field.isString() || field.isNull() || field.isMissingNode());
+    private static Stream<ModelChoice> choiceOf(JsonNode entry, CandidateAliases candidates) {
+        JsonNode id = entry.path(ID);
+        JsonNode reason = entry.path(REASON);
+        boolean wellTyped = id.isString() && (reason.isString() || reason.isNull() || reason.isMissingNode());
         if (!wellTyped) {
             return Stream.empty();
         }
-        return Stream.of(new Recommendation(
-                textOf(entry, FIELDS.get(0)), textOf(entry, FIELDS.get(1)),
-                textOf(entry, FIELDS.get(2)), textOf(entry, FIELDS.get(3))));
-    }
-
-    private static String textOf(JsonNode entry, String field) {
-        return entry.path(field).isString() ? entry.path(field).asString() : null;
+        return candidates.idOf(id.asString())
+                .map(catalogId -> new ModelChoice(catalogId, reason.isString() ? reason.asString() : null))
+                .stream();
     }
 
     private static RecommendationProviderUnavailableException unavailable(ErrorMessageEnum reason) {

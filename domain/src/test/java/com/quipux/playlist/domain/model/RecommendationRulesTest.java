@@ -1,18 +1,20 @@
 package com.quipux.playlist.domain.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
 
 import com.quipux.playlist.domain.model.enums.GenreSource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class RecommendationRulesTest {
 
     private static final GenreCatalog ALLOWED = new GenreCatalog(GenreSource.LOCAL, List.of("rock"));
+    private static final SongCatalog CATALOG = new SongCatalog(
+            IntStream.range(0, 30).mapToObj(RecommendationRulesTest::catalogSong).toList(), "embeddings");
 
     @Test
     void fallsBackToTheFirstFiveDefaults() {
@@ -46,79 +48,111 @@ class RecommendationRulesTest {
     }
 
     @Test
-    void keepsAValidSuggestionAndFillsTheOptionalFields() {
-        List<Recommendation> raw = List.of(new Recommendation("New", "Singer", null, null));
-
-        assertThat(RecommendationRules.validate(raw, List.of()))
-                .containsExactly(new Recommendation("New", "Singer", "", ""));
-    }
-
-    @Test
-    void discardsASuggestionWithoutTitleOrArtist() {
-        List<Recommendation> raw = Arrays.asList(
-                suggestion(null, "Singer"), suggestion(" ", "Singer"), suggestion("New", null),
-                suggestion("New", ""), null, suggestion("Kept", "Singer"));
-
-        assertThat(titlesOf(RecommendationRules.validate(raw, List.of()))).containsExactly("Kept");
-    }
-
-    @Test
-    void discardsOversizedFieldsButAcceptsTheLimits() {
-        List<Recommendation> raw = List.of(
-                suggestion("t".repeat(256), "Singer"),
-                suggestion("Long artist", "a".repeat(256)),
-                new Recommendation("Long genre", "Singer", "g".repeat(101), ""),
-                new Recommendation("t".repeat(255), "a".repeat(255), "g".repeat(100), ""));
-
-        assertThat(titlesOf(RecommendationRules.validate(raw, List.of()))).containsExactly("t".repeat(255));
-    }
-
-    @Test
-    void trimsALongReason() {
-        Recommendation raw = new Recommendation("New", "Singer", "rock", "r".repeat(121));
-
-        assertThat(RecommendationRules.validate(List.of(raw), List.of()))
-                .singleElement()
-                .extracting(Recommendation::reason)
-                .isEqualTo("r".repeat(120));
-    }
-
-    @Test
-    void doesNotSplitACharacterWhenTrimmingTheReason() {
-        // The note takes two Java characters: the 120th and the 121st.
-        Recommendation raw = new Recommendation("New", "Singer", "rock", "r".repeat(119) + "🎵tail");
-
-        assertThat(RecommendationRules.validate(List.of(raw), List.of()))
-                .singleElement()
-                .extracting(Recommendation::reason)
-                .isEqualTo("r".repeat(119) + "🎵");
-    }
-
-    @Test
-    void discardsTheSongsOfTheWholePlaylistAndTheRepeatedOnes() {
+    void takesAsCandidatesTheNearestSongsThatAreNotInTheWholePlaylist() {
         List<Song> songs = new ArrayList<>();
-        IntStream.range(0, 60).forEach(index -> songs.add(song("Old " + index, "Singer")));
-        List<Recommendation> raw = List.of(
-                suggestion(" old 59 ", "SINGER"), suggestion("New", "Singer"),
-                suggestion("NEW ", "singer"), suggestion("New", "Another"));
+        IntStream.range(0, 50).forEach(index -> songs.add(song("Old " + index, "Singer")));
+        // The 51st song: it is not sent to the model and still cannot be recommended.
+        songs.add(song(" CATALOG 1 ", "artist"));
 
-        assertThat(RecommendationRules.validate(raw, songs))
-                .extracting(Recommendation::title, Recommendation::artist)
-                .containsExactly(tuple("New", "Singer"), tuple("New", "Another"));
+        assertThat(RecommendationRules.candidates(idsOf(3, 1, 0), CATALOG, songs, 20))
+                .containsExactly(catalogSong(3), catalogSong(0));
     }
 
     @Test
-    void keepsTheFirstFiveValidSuggestions() {
-        List<Recommendation> raw = IntStream.range(0, 8)
-                .mapToObj(index -> suggestion("New " + index, "Singer"))
+    void leavesOutOfTheCandidatesWhatTheCurrentCatalogDoesNotHold() {
+        List<UUID> nearest = List.of(UUID.randomUUID(), catalogSong(2).id(), catalogSong(2).id());
+
+        assertThat(RecommendationRules.candidates(nearest, CATALOG, List.of(), 20))
+                .containsExactly(catalogSong(2));
+    }
+
+    @Test
+    void keepsAsManyCandidatesAsAskedForInTheirOrder() {
+        List<UUID> nearest = IntStream.range(0, 30).mapToObj(index -> catalogSong(29 - index).id()).toList();
+
+        assertThat(RecommendationRules.candidates(nearest, CATALOG, List.of(), 20))
+                .hasSize(20)
+                .startsWith(catalogSong(29), catalogSong(28))
+                .endsWith(catalogSong(10));
+    }
+
+    @Test
+    void mayFindNoCandidate() {
+        assertThat(RecommendationRules.candidates(List.of(), CATALOG, List.of(), 20)).isEmpty();
+    }
+
+    @Test
+    void deliversTheChosenSongsWithTheDataOfTheCatalog() {
+        CatalogSong chosen = catalogSong(4);
+
+        assertThat(RecommendationRules.fromChoices(
+                        List.of(new ModelChoice(chosen.id(), "Afín")), List.of(catalogSong(1), chosen)))
+                .containsExactly(new Recommendation(
+                        chosen.id().toString(), chosen.title(), chosen.artist(), chosen.genre(), "Afín"));
+    }
+
+    @Test
+    void discardsTheChoicesThatAreNotCandidatesAndTheRepeatedOnes() {
+        List<CatalogSong> candidates = List.of(catalogSong(0), catalogSong(1));
+        List<ModelChoice> choices = Arrays.asList(
+                choice(catalogSong(5)), new ModelChoice(UUID.randomUUID(), "Made up"), null,
+                choice(catalogSong(1)), choice(catalogSong(1)), choice(catalogSong(0)));
+
+        assertThat(titlesOf(RecommendationRules.fromChoices(choices, candidates)))
+                .containsExactly("Catalog 1", "Catalog 0");
+    }
+
+    @Test
+    void keepsTheFirstFiveChoicesInTheOrderOfTheModel() {
+        List<CatalogSong> candidates = IntStream.range(0, 8).mapToObj(RecommendationRulesTest::catalogSong).toList();
+        List<ModelChoice> choices = IntStream.range(0, 8)
+                .mapToObj(index -> choice(catalogSong(7 - index)))
                 .toList();
 
-        assertThat(titlesOf(RecommendationRules.validate(raw, List.of())))
-                .containsExactly("New 0", "New 1", "New 2", "New 3", "New 4");
+        assertThat(titlesOf(RecommendationRules.fromChoices(choices, candidates)))
+                .containsExactly("Catalog 7", "Catalog 6", "Catalog 5", "Catalog 4", "Catalog 3");
     }
 
-    private static Recommendation suggestion(String title, String artist) {
-        return new Recommendation(title, artist, "rock", "Reason");
+    @Test
+    void trimsALongReasonAndAcceptsNone() {
+        List<CatalogSong> candidates = List.of(catalogSong(0), catalogSong(1));
+        // The note takes two Java characters: the 120th and the 121st.
+        List<ModelChoice> choices = List.of(
+                new ModelChoice(catalogSong(0).id(), "r".repeat(119) + "🎵tail"),
+                new ModelChoice(catalogSong(1).id(), null));
+
+        assertThat(RecommendationRules.fromChoices(choices, candidates))
+                .extracting(Recommendation::reason)
+                .containsExactly("r".repeat(119) + "🎵", "");
+    }
+
+    @Test
+    void offersTheFiveNearestCandidatesWithAFixedReasonWhenTheModelGivesNothing() {
+        List<CatalogSong> candidates = IntStream.range(0, 8).mapToObj(RecommendationRulesTest::catalogSong).toList();
+
+        assertThat(RecommendationRules.similar(candidates))
+                .containsExactlyElementsOf(candidates.subList(0, 5).stream()
+                        .map(song -> new Recommendation(song.id().toString(), song.title(), song.artist(),
+                                song.genre(), "Similar a las canciones de la lista"))
+                        .toList());
+    }
+
+    @Test
+    void offersEveryCandidateWhenThereAreFewerThanFive() {
+        assertThat(titlesOf(RecommendationRules.similar(List.of(catalogSong(2), catalogSong(1)))))
+                .containsExactly("Catalog 2", "Catalog 1");
+    }
+
+    private static ModelChoice choice(CatalogSong song) {
+        return new ModelChoice(song.id(), "Reason");
+    }
+
+    private static CatalogSong catalogSong(int number) {
+        return CatalogSong.of("Catalog " + number, "Artist", "Album", "2000", "rock");
+    }
+
+    private static List<UUID> idsOf(int... numbers) {
+        return Arrays.stream(numbers).mapToObj(number -> catalogSong(number).id()).toList();
     }
 
     private static List<String> titlesOf(List<Recommendation> recommendations) {

@@ -6,7 +6,6 @@ import com.quipux.playlist.domain.model.enums.RecommendationOrigin;
 import com.quipux.playlist.infrastructure.in.rest.dto.RecommendationDto;
 import com.quipux.playlist.infrastructure.in.rest.dto.RecommendationsResponseDto;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.ReportingPolicy;
 
@@ -15,8 +14,6 @@ public interface RecommendationDtoMapper {
 
     RecommendationsResponseDto toDto(RecommendationSet recommendations);
 
-    // There is no catalog yet, so no suggestion is verified against one.
-    @Mapping(target = "catalogId", constant = "")
     RecommendationDto toDto(Recommendation recommendation);
 
     default String originOf(RecommendationOrigin origin) {

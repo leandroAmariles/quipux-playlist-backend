@@ -44,10 +44,10 @@ public class RecommendationConfig {
     @Value("${playlist.genres.local-file:classpath:local-genres.properties}")
     private Resource localGenres;
 
-    @Value("${playlist.ai.prompt-version:v1}")
+    @Value("${playlist.ai.prompt-version:v2}")
     private String promptVersion;
 
-    @Value("classpath:prompts/recommendations/${playlist.ai.prompt-version:v1}.txt")
+    @Value("classpath:prompts/recommendations/${playlist.ai.prompt-version:v2}.txt")
     private Resource promptFile;
 
     @Value("${playlist.ai.chat-model:recomendador-chat}")

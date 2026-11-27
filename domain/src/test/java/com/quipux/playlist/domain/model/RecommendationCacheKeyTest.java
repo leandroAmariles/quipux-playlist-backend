@@ -14,13 +14,14 @@ class RecommendationCacheKeyTest {
 
     private static final ProviderIdentity IDENTITY = new ProviderIdentity("v1", "model");
     private static final Song SONG = new Song("Title", "Artist", "Album", "1999", "rock");
+    private static final String CATALOG = "catalog-1";
 
     @Test
     void isTheSameForTheSameSongsPromptAndModel() {
-        RecommendationCacheKey key = RecommendationCacheKey.of(List.of(SONG), IDENTITY);
+        RecommendationCacheKey key = RecommendationCacheKey.of(List.of(SONG), IDENTITY, CATALOG);
 
         assertThat(key).isEqualTo(RecommendationCacheKey.of(
-                List.of(new Song("Title", "Artist", "Album", "1999", "rock")), IDENTITY));
+                List.of(new Song("Title", "Artist", "Album", "1999", "rock")), IDENTITY, CATALOG));
         assertThat(key.songsFingerprint()).matches("[0-9a-f]{64}");
         assertThat(key.promptVersion()).isEqualTo("v1");
         assertThat(key.model()).isEqualTo("model");
@@ -42,8 +43,8 @@ class RecommendationCacheKeyTest {
     @ParameterizedTest
     @MethodSource("variations")
     void changesWithAnyFieldOfASong(Song changed) {
-        assertThat(RecommendationCacheKey.of(List.of(changed), IDENTITY))
-                .isNotEqualTo(RecommendationCacheKey.of(List.of(SONG), IDENTITY));
+        assertThat(RecommendationCacheKey.of(List.of(changed), IDENTITY, CATALOG))
+                .isNotEqualTo(RecommendationCacheKey.of(List.of(SONG), IDENTITY, CATALOG));
     }
 
     @Test
@@ -57,22 +58,30 @@ class RecommendationCacheKeyTest {
         List<Song> songs = new ArrayList<>(IntStream.range(0, 60)
                 .mapToObj(index -> new Song("Song " + index, "Artist", null, null, null))
                 .toList());
-        RecommendationCacheKey before = RecommendationCacheKey.of(songs, IDENTITY);
+        RecommendationCacheKey before = RecommendationCacheKey.of(songs, IDENTITY, CATALOG);
 
         songs.set(59, SONG);
 
-        assertThat(RecommendationCacheKey.of(songs, IDENTITY)).isNotEqualTo(before);
+        assertThat(RecommendationCacheKey.of(songs, IDENTITY, CATALOG)).isNotEqualTo(before);
     }
 
     @Test
     void changesWithThePromptOrTheModel() {
-        RecommendationCacheKey key = RecommendationCacheKey.of(List.of(SONG), IDENTITY);
+        RecommendationCacheKey key = RecommendationCacheKey.of(List.of(SONG), IDENTITY, CATALOG);
 
-        assertThat(RecommendationCacheKey.of(List.of(SONG), new ProviderIdentity("v2", "model"))).isNotEqualTo(key);
-        assertThat(RecommendationCacheKey.of(List.of(SONG), new ProviderIdentity("v1", "other"))).isNotEqualTo(key);
+        assertThat(RecommendationCacheKey.of(List.of(SONG), new ProviderIdentity("v2", "model"), CATALOG))
+                .isNotEqualTo(key);
+        assertThat(RecommendationCacheKey.of(List.of(SONG), new ProviderIdentity("v1", "other"), CATALOG))
+                .isNotEqualTo(key);
+    }
+
+    @Test
+    void changesWithTheVersionOfTheCatalog() {
+        assertThat(RecommendationCacheKey.of(List.of(SONG), IDENTITY, "catalog-2"))
+                .isNotEqualTo(RecommendationCacheKey.of(List.of(SONG), IDENTITY, CATALOG));
     }
 
     private static String fingerprintOf(Song song) {
-        return RecommendationCacheKey.of(List.of(song), IDENTITY).songsFingerprint();
+        return RecommendationCacheKey.of(List.of(song), IDENTITY, CATALOG).songsFingerprint();
     }
 }

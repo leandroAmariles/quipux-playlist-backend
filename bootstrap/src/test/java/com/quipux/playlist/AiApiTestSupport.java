@@ -4,6 +4,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -27,6 +29,7 @@ import tools.jackson.databind.json.JsonMapper;
  * The application with the AI enabled against a simulated LiteLLM, using the real {@code application.yml}: only the
  * environment variables that a deployment would set are given.
  */
+@Import(InMemorySongCatalog.Registration.class)
 abstract class AiApiTestSupport extends ApiTestSupport {
 
     protected static final String AI_KEY = "sk-fake-key-only-for-tests";
@@ -38,6 +41,7 @@ abstract class AiApiTestSupport extends ApiTestSupport {
     @DynamicPropertySource
     static void pointToTheSimulatedGateway(DynamicPropertyRegistry registry) {
         registry.add("spring.ai.model.chat", () -> "openai");
+        registry.add("spring.ai.model.embedding", () -> "openai");
         registry.add("AI_API_KEY", () -> AI_KEY);
         registry.add("AI_BASE_URL", () -> LITELLM.baseUrl() + "/v1");
         registry.add("AI_TIMEOUT", () -> "2s");
@@ -67,18 +71,20 @@ abstract class AiApiTestSupport extends ApiTestSupport {
                 .withBody(body);
     }
 
-    /** An answer of the model with one suggestion for each {@code title|artist} pair. */
-    protected static String suggestions(String... titlesAndArtists) {
-        List<Map<String, String>> entries = Arrays.stream(titlesAndArtists)
-                .map(pair -> pair.split("\\|", 2))
-                .map(parts -> Map.of(
-                        "titulo", parts[0], "artista", parts[1], "genero", "rock", "motivo", "Afín"))
+    /** An answer of the model that chooses these identifiers, such as {@code c1}, in this order. */
+    protected static String suggestions(String... identifiers) {
+        List<Map<String, String>> entries = Arrays.stream(identifiers)
+                .map(identifier -> Map.of("idCatalogo", identifier, "motivo", "Afín"))
                 .collect(Collectors.toList());
         return MAPPER.writeValueAsString(Map.of("recomendaciones", entries));
     }
 
     protected static List<LoggedRequest> gatewayRequests() {
         return LITELLM.findAll(anyRequestedFor(anyUrl()));
+    }
+
+    protected static List<LoggedRequest> chatRequests() {
+        return LITELLM.findAll(postRequestedFor(urlEqualTo(COMPLETIONS)));
     }
 
     protected Mono<Map<String, Object>> recommendationsOf(String playlist) {
@@ -102,7 +108,7 @@ abstract class AiApiTestSupport extends ApiTestSupport {
     }
 
     private static WireMockServer startLiteLlm() {
-        WireMockServer server = new WireMockServer(wireMockConfig().dynamicPort());
+        WireMockServer server = new WireMockServer(EmbeddingsStub.configure(wireMockConfig().dynamicPort()));
         server.start();
         return server;
     }

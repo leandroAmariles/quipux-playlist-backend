@@ -73,6 +73,20 @@ public enum ErrorMessageEnum {
             "The default recommendations are not valid: %s"),
     PROMPT_UNAVAILABLE(ResponseCodeEnum.INVALID_RECOMMENDATION_CONFIGURATION,
             "The prompt %s could not be loaded"),
+    CATALOG_INVALID(ResponseCodeEnum.INVALID_RECOMMENDATION_CONFIGURATION, "The song catalog is not valid: %s"),
+    CATALOG_DISABLED(ResponseCodeEnum.SONG_CATALOG_UNAVAILABLE,
+            "The song catalog is not used while the AI is disabled or has no API key"),
+    CATALOG_NOT_CONFIGURED(ResponseCodeEnum.SONG_CATALOG_UNAVAILABLE,
+            "The song catalog has no database address or password"),
+    CATALOG_TIMEOUT(ResponseCodeEnum.SONG_CATALOG_UNAVAILABLE, "The song catalog did not answer in time"),
+    CATALOG_EMBEDDINGS_UNAVAILABLE(ResponseCodeEnum.SONG_CATALOG_UNAVAILABLE,
+            "The AI provider returned no usable embeddings"),
+    CATALOG_UNREACHABLE(ResponseCodeEnum.SONG_CATALOG_UNAVAILABLE, "The song catalog database could not be used"),
+    CATALOG_INDEXING_FAILED(ResponseCodeEnum.SONG_CATALOG_UNAVAILABLE, "The song catalog could not be indexed: %s"),
+    RECOMMENDATION_NO_CANDIDATES(ResponseCodeEnum.SONG_CATALOG_UNAVAILABLE,
+            "The song catalog has no candidates for the playlist"),
+    RECOMMENDATION_SIMILARITY(ResponseCodeEnum.RECOMMENDATION_PROVIDER_UNAVAILABLE,
+            "Using the most similar songs: %s"),
     UNEXPECTED_ERROR(ResponseCodeEnum.UNEXPECTED_ERROR,"An unexpected error occurred");
 
     private final ResponseCodeEnum responseCode;

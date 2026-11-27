@@ -2,8 +2,9 @@ package com.quipux.playlist.infrastructure.out.recommendation;
 
 import com.quipux.playlist.application.port.out.RecommendationProviderPort;
 import com.quipux.playlist.domain.exception.RecommendationProviderUnavailableException;
+import com.quipux.playlist.domain.model.CatalogSong;
+import com.quipux.playlist.domain.model.ModelChoice;
 import com.quipux.playlist.domain.model.ProviderIdentity;
-import com.quipux.playlist.domain.model.Recommendation;
 import com.quipux.playlist.domain.model.Song;
 import com.quipux.playlist.domain.model.enums.ErrorMessageEnum;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
@@ -17,13 +18,15 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 /**
- * Asks the model behind the gateway for suggestions, with one attempt, a time limit, a circuit breaker and a
- * maximum of calls at once. No tools are registered.
+ * Asks the model behind the gateway to choose among the candidates, with one attempt, a time limit, a circuit breaker
+ * and a maximum of calls at once. No tools are registered.
  */
 public class LlmRecommendationProviderAdapter implements RecommendationProviderPort {
 
@@ -54,18 +57,35 @@ public class LlmRecommendationProviderAdapter implements RecommendationProviderP
     }
 
     @Override
-    public Mono<List<Recommendation>> recommend(List<Song> songs) {
-        return Mono.fromSupplier(() -> requestFor(songs))
-                .flatMap(this::answerTo)
-                // Building the request loads classes and serializes: kept away from the event loop.
-                .subscribeOn(Schedulers.boundedElastic())
-                // Outside the circuit breaker: content that cannot be used does not mean the provider is down.
-                .map(parser::parse);
+    public Mono<List<ModelChoice>> choose(List<Song> songs, List<CatalogSong> candidates) {
+        return Mono.defer(() -> {
+            CandidateAliases aliases = CandidateAliases.of(candidates);
+            return Mono.fromSupplier(() -> requestFor(songs, aliases))
+                    .flatMap(this::answerTo)
+                    // Building the request loads classes and serializes: kept away from the event loop.
+                    .subscribeOn(Schedulers.boundedElastic())
+                    // Outside the circuit breaker: content that cannot be used does not mean the provider is down.
+                    .map(content -> parser.parse(content, aliases));
+        });
     }
 
-    private Prompt requestFor(List<Song> songs) {
-        PromptTemplate.Messages messages = prompt.render(settings.sample().of(songs));
-        return new Prompt(new SystemMessage(messages.system()), new UserMessage(messages.user()));
+    private Prompt requestFor(List<Song> songs, CandidateAliases candidates) {
+        PromptTemplate.Messages messages = prompt.render(settings.sample().of(songs), candidates);
+        return new Prompt(
+                List.of(new SystemMessage(messages.system()), new UserMessage(messages.user())),
+                optionsLimitedTo(candidates));
+    }
+
+    // The options of a request replace those of the model, so they are built from them: only the format changes.
+    private OpenAiChatOptions optionsLimitedTo(CandidateAliases candidates) {
+        OpenAiChatModel.ResponseFormat format = OpenAiChatModel.ResponseFormat.builder()
+                .type(OpenAiChatModel.ResponseFormat.Type.JSON_SCHEMA)
+                .jsonSchema(ChoiceSchema.of(candidates.aliases()))
+                .strict(true)
+                .build();
+        return ((OpenAiChatOptions) chatModel.getOptions()).mutate()
+                .responseFormat(format)
+                .build();
     }
 
     // A call over the maximum does not wait for its turn.

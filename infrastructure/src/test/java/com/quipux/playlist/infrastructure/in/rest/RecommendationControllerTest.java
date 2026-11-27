@@ -62,6 +62,21 @@ class RecommendationControllerTest {
     }
 
     @Test
+    void writesTheCatalogIdentifierOfAVerifiedSuggestionAndAnEmptyOneOtherwise() {
+        when(getRecommendations.recommend(DemoUser.USER.username(), "Lista 1")).thenReturn(Mono.just(
+                RecommendationSet.fromAi("Lista 1", "v2", List.of(
+                        new Recommendation("2f1c9f0a-6d1e-3c2b-9a4f-0b7c5d8e1a23", "Take Five", "Brubeck", "jazz",
+                                "Same era"),
+                        new Recommendation("Song 2", "Another artist", "rock", "Same genre")))));
+
+        withToken(DemoUser.USER, response -> response
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.recomendaciones[0].idCatalogo").isEqualTo("2f1c9f0a-6d1e-3c2b-9a4f-0b7c5d8e1a23")
+                .jsonPath("$.recomendaciones[1].idCatalogo").isEqualTo(""));
+    }
+
+    @Test
     void writesEveryFieldOfAnEmptyFallback() {
         when(getRecommendations.recommend(DemoUser.USER.username(), "Lista 1"))
                 .thenReturn(Mono.just(RecommendationSet.fallback("Lista 1", List.of())));

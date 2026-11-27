@@ -23,7 +23,7 @@ class RecommendationLoggingApiTest extends AiApiTestSupport {
 
     @Test
     void recordsWhatWasServedWithoutThePromptOrAnySecret(CapturedOutput output) {
-        modelAnswers(suggestions("Suggested title|Suggested artist"));
+        modelAnswers(suggestions("c1"));
         StringBuilder token = new StringBuilder();
 
         Mono<Map<String, Object>> answer = create(playlist("log-ok", Map.of("titulo", SONG, "artista", "Me")))
@@ -38,8 +38,9 @@ class RecommendationLoggingApiTest extends AiApiTestSupport {
                 .verifyComplete();
 
         assertThat(output)
-                .contains("origin=IA", "model=recomendador-chat", "promptVersion=v1", "latencyMs=")
-                .doesNotContain(AI_KEY, token.toString(), PROMPT_TEXT, SONG, "Suggested title");
+                .contains("origin=IA", "model=recomendador-chat", "promptVersion=v2", "latencyMs=")
+                .containsPattern("catalogVersion=[0-9a-f]{12}, candidates=20, retrievalMs=\\d+")
+                .doesNotContain(AI_KEY, token.toString(), PROMPT_TEXT, SONG, "Catalog 1", "Band 1");
     }
 
     @Test
@@ -49,28 +50,29 @@ class RecommendationLoggingApiTest extends AiApiTestSupport {
                 .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .withBody("{\"error\":{\"message\":\"Bad prompt: " + PROMPT_TEXT + " " + SONG + "\"}}"));
 
-        answersWithTheDefaults("log-error");
+        answersBySimilarity("log-error");
 
         assertThat(output)
-                .contains("RECOMMENDATION_ERROR_002", "The AI provider answered 400", "origin=RESPALDO")
-                .doesNotContain(AI_KEY, PROMPT_TEXT, SONG);
+                .contains("RECOMMENDATION_ERROR_002", "Using the most similar songs", "The AI provider answered 400",
+                        "origin=SIMILITUD")
+                .doesNotContain(AI_KEY, PROMPT_TEXT, SONG, "Catalog 1", "Band 1");
     }
 
     @Test
     void doesNotRecordUnreadableContent(CapturedOutput output) {
         modelAnswers("Claro: " + PROMPT_TEXT + " " + SONG);
 
-        answersWithTheDefaults("log-unreadable");
+        answersBySimilarity("log-unreadable");
 
         assertThat(output)
                 .contains("The AI provider returned unreadable content")
                 .doesNotContain(PROMPT_TEXT, SONG);
     }
 
-    private void answersWithTheDefaults(String name) {
+    private void answersBySimilarity(String name) {
         StepVerifier.create(create(playlist(name, Map.of("titulo", SONG + " " + name, "artista", "Me")))
                         .then(recommendationsOf(name)))
-                .assertNext(body -> assertThat(body).containsEntry("origen", "RESPALDO"))
+                .assertNext(body -> assertThat(body).containsEntry("origen", "SIMILITUD"))
                 .verifyComplete();
     }
 }

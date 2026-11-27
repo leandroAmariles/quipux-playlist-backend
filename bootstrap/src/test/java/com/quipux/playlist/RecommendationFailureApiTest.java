@@ -25,7 +25,7 @@ import reactor.test.StepVerifier;
         "playlist.ai.circuit-breaker.minimum-calls=1000"})
 class RecommendationFailureApiTest extends AiApiTestSupport {
 
-    private static final String VALID = suggestions("New song|New artist");
+    private static final String VALID = suggestions("c1");
 
     static Stream<Arguments> failures() {
         return Stream.of(
@@ -52,14 +52,14 @@ class RecommendationFailureApiTest extends AiApiTestSupport {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("failures")
-    void fallsBackAfterExactlyOneRequest(String name, ResponseDefinitionBuilder response) {
+    void answersWithTheNearestSongsAfterExactlyOneRequest(String name, ResponseDefinitionBuilder response) {
         gatewayAnswers(response);
         String playlist = "fail-" + name;
 
         StepVerifier.create(create(playlist(playlist, Map.of("titulo", name, "artista", "Me")))
                         .then(recommendationsOf(playlist)))
                 .assertNext(answer -> {
-                    assertThat(answer).containsEntry("origen", "RESPALDO").containsEntry("versionPrompt", "");
+                    assertThat(answer).containsEntry("origen", "SIMILITUD").containsEntry("versionPrompt", "");
                     assertThat(songsOf(answer)).hasSize(5);
                 })
                 .expectComplete()
