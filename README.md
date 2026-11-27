@@ -37,6 +37,7 @@ El resto de este documento explica cómo hacerlo sin Docker.
 ## Requisitos
 
 - Java 21
+- Docker en marcha (necesario para ejecutar las pruebas de integración de Redis con Testcontainers durante `./mvnw verify`)
 - Acceso a internet la primera vez, para descargar Maven y las dependencias
 - Opcionales: [Postman](https://www.postman.com/downloads/) para la colección y Node para la aplicación web
 
@@ -56,6 +57,15 @@ No hace falta instalar Maven. Todos los comandos se ejecutan desde la raíz de e
 | `SPOTIFY_ACCOUNTS_BASE_URL` | no | `https://accounts.spotify.com` | dirección donde se pide el token de Spotify |
 | `SPOTIFY_API_BASE_URL` | no | `https://api.spotify.com` | dirección donde se consultan los géneros |
 | `SPOTIFY_TIMEOUT` | no | `3s` | tiempo máximo para obtener los géneros |
+| `REDIS_HOST` | no | `localhost` | servidor Redis para la caché de géneros |
+| `REDIS_PORT` | no | `6379` | puerto de Redis |
+| `REDIS_PASSWORD` | no | — | contraseña opcional de Redis |
+| `REDIS_TIMEOUT` | no | `1s` | tiempo máximo de comando en Redis |
+| `REDIS_CONNECT_TIMEOUT` | no | `1s` | tiempo máximo de conexión inicial a Redis |
+| `GENRES_CACHE_ENABLED` | no | `true` | activa o desactiva la caché de géneros en Redis |
+| `GENRES_CACHE_KEY` | no | `playlist:genres:spotify` | clave en Redis para el catálogo de géneros |
+| `GENRES_CACHE_TTL` | no | `24h` | vigencia de la caché de géneros en Redis |
+| `GENRES_CACHE_TIMEOUT` | no | `1s` | tiempo máximo total por lectura/escritura de caché |
 | `AI_PROVIDER` | no | `none` | `openai` activa las recomendaciones con IA a través de LiteLLM |
 | `AI_API_KEY` | no | — | clave de LiteLLM; sin ella no se llama al modelo |
 | `AI_BASE_URL` | no | `http://localhost:4000/v1` | dirección de LiteLLM, terminada en `/v1` |
@@ -124,8 +134,13 @@ Sin `curl`, se puede hacer lo mismo desde la documentación interactiva o con la
 ./mvnw verify
 ```
 
-En PowerShell, `.\mvnw.cmd verify`. Compila, ejecuta las pruebas y aplica los controles de calidad. No necesita
-variables de entorno ni conexión con Spotify.
+En PowerShell, `.\mvnw.cmd verify`. Compila, ejecuta las pruebas (incluidas las de Testcontainers sobre Redis y
+`BlockHound`) y aplica los controles de calidad. No necesita variables de entorno ni conexión con Spotify; solo
+requiere Docker en marcha para los contenedores de prueba.
+
+Las respuestas válidas de Spotify (`origen: SPOTIFY`) se cachean en Redis durante `GENRES_CACHE_TTL` (`24h` por
+defecto). La lista local (`origen: LOCAL`) nunca se cachea y, si Redis cae o agota `GENRES_CACHE_TIMEOUT`, la API sigue
+respondiendo consultando directamente el origen sin afectar las sondas de salud.
 
 Falla ante una violación de Checkstyle, una dependencia prohibida entre capas o menos del 80 % de líneas cubiertas en
 un módulo.

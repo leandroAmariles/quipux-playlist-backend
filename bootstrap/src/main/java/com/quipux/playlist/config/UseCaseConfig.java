@@ -9,6 +9,7 @@ import com.quipux.playlist.application.port.in.GetRecommendationsPort;
 import com.quipux.playlist.application.port.in.LoginPort;
 import com.quipux.playlist.application.port.in.RegisterDemoUsersPort;
 import com.quipux.playlist.application.port.out.DefaultRecommendationsPort;
+import com.quipux.playlist.application.port.out.GenreCachePort;
 import com.quipux.playlist.application.port.out.GenreProviderPort;
 import com.quipux.playlist.application.port.out.PasswordHasherPort;
 import com.quipux.playlist.application.port.out.PlaylistRepositoryPort;
@@ -85,7 +86,8 @@ public class UseCaseConfig {
     @Bean
     GetGenresPort getGenresPort(
             @Qualifier("spotifyGenreProvider") GenreProviderPort spotify,
-            @Qualifier("localGenreProvider") GenreProviderPort local) {
-        return new GetGenresUseCase(spotify, local);
+            @Qualifier("localGenreProvider") GenreProviderPort local,
+            GenreCachePort cache) {
+        return new GetGenresUseCase(spotify, local, cache);
     }
 }
