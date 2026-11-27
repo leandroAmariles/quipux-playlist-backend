@@ -8,7 +8,6 @@ import com.quipux.playlist.domain.exception.InvalidCredentialsException;
 import com.quipux.playlist.domain.model.AccessToken;
 import com.quipux.playlist.domain.model.Credentials;
 import com.quipux.playlist.domain.model.User;
-import java.util.List;
 import java.util.UUID;
 import reactor.core.publisher.Mono;
 
