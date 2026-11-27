@@ -8,6 +8,8 @@ import com.quipux.playlist.application.port.out.RecommendationProviderPort;
 import com.quipux.playlist.application.port.out.RequestQuotaPort;
 import com.quipux.playlist.domain.model.ProviderIdentity;
 import com.quipux.playlist.domain.model.SongSample;
+import com.quipux.playlist.infrastructure.out.recommendation.ActivePrompt;
+import com.quipux.playlist.infrastructure.out.recommendation.LangfusePromptSource;
 import com.quipux.playlist.domain.model.enums.ErrorMessageEnum;
 import com.quipux.playlist.infrastructure.out.genre.LocalGenreProviderAdapter;
 import com.quipux.playlist.infrastructure.out.recommendation.CaffeineRecommendationCacheAdapter;
@@ -31,6 +33,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Configuration
 public class RecommendationConfig {
@@ -89,6 +93,27 @@ public class RecommendationConfig {
     @Value("${spring.ai.openai.api-key:}")
     private String apiKey;
 
+    @Value("${playlist.ai.trace-session:}")
+    private String traceSession;
+
+    @Value("${playlist.ai.langfuse.host:}")
+    private String langfuseHost;
+
+    @Value("${playlist.ai.langfuse.public-key:}")
+    private String langfusePublicKey;
+
+    @Value("${playlist.ai.langfuse.secret-key:}")
+    private String langfuseSecretKey;
+
+    @Value("${playlist.ai.langfuse.prompt-name:recomendaciones-v2}")
+    private String langfusePromptName;
+
+    @Value("${playlist.ai.langfuse.timeout:1s}")
+    private Duration langfuseTimeout;
+
+    @Value("${playlist.ai.langfuse.cache-ttl:60s}")
+    private Duration langfuseCacheTimeToLive;
+
     @Bean
     DefaultRecommendationsPort defaultRecommendations() {
         return new FileDefaultRecommendationsAdapter(
@@ -125,9 +150,25 @@ public class RecommendationConfig {
             return new SimulatedRecommendationProviderAdapter(
                     ErrorMessageEnum.RECOMMENDATION_PROVIDER_NOT_CONFIGURED, identity);
         }
-        return new LlmRecommendationProviderAdapter(chatModel, prompt, new LlmResponseParser(),
-                new LlmSettings(identity, new SongSample(maxSongs, maxFieldLength), timeout, maxConcurrentCalls),
+        return new LlmRecommendationProviderAdapter(chatModel,
+                activePrompt(new ActivePrompt(promptVersion, prompt)), new LlmResponseParser(),
+                new LlmSettings(identity, new SongSample(maxSongs, maxFieldLength), timeout, maxConcurrentCalls,
+                        traceSession),
                 circuitBreaker());
+    }
+
+    // Without an address and both keys, Langfuse is not asked: the prompt is the one of the file.
+    private Mono<ActivePrompt> activePrompt(ActivePrompt local) {
+        if (langfuseHost.isBlank() || langfusePublicKey.isBlank() || langfuseSecretKey.isBlank()) {
+            return Mono.just(local);
+        }
+        WebClient client = WebClient.builder()
+                .baseUrl(langfuseHost)
+                .defaultHeaders(headers -> headers.setBasicAuth(langfusePublicKey, langfuseSecretKey))
+                .build();
+        return new LangfusePromptSource(
+                client, langfusePromptName, local, langfuseTimeout, langfuseCacheTimeToLive)
+                .active();
     }
 
     // Timeouts, connection failures and error responses count; data that cannot be read does not.

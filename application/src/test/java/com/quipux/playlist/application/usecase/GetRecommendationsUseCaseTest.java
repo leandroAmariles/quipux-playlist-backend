@@ -104,6 +104,7 @@ class GetRecommendationsUseCaseTest {
         useCase = useCaseWithin(Duration.ofSeconds(30));
         when(defaults.defaults()).thenReturn(Mono.just(DEFAULTS));
         when(provider.identity()).thenReturn(IDENTITY);
+        when(provider.current()).thenReturn(Mono.just(provider));
         when(catalog.catalog()).thenReturn(CATALOG);
         when(catalog.nearest(any(), anyInt())).thenReturn(Mono.just(NEAREST));
         when(quota.consume(USER)).thenReturn(Mono.just(QuotaDecision.permit()));

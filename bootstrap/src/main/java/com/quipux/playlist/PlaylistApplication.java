@@ -11,6 +11,9 @@ public class PlaylistApplication {
         if (Arrays.asList(args).contains(CatalogIndexApplication.COMMAND)) {
             System.exit(CatalogIndexApplication.run(args));
         }
+        if (Arrays.asList(args).contains(RecommendationEvaluationApplication.COMMAND)) {
+            System.exit(RecommendationEvaluationApplication.run(args));
+        }
         SpringApplication.run(PlaylistApplication.class, args);
     }
 }

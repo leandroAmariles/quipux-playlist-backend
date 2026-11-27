@@ -15,6 +15,7 @@ import com.quipux.playlist.domain.exception.SongCatalogUnavailableException;
 import com.quipux.playlist.domain.model.CachedRecommendations;
 import com.quipux.playlist.domain.model.CatalogSong;
 import com.quipux.playlist.domain.model.Playlist;
+import com.quipux.playlist.domain.model.ProviderIdentity;
 import com.quipux.playlist.domain.model.RecommendationCacheKey;
 import com.quipux.playlist.domain.model.RecommendationRules;
 import com.quipux.playlist.domain.model.RecommendationSet;
@@ -70,8 +71,8 @@ public class GetRecommendationsUseCase implements GetRecommendationsPort {
                     .then(Mono.defer(() -> repository.findByName(playlistName)))
                     .switchIfEmpty(Mono.error(PlaylistNotFoundException::new))
                     .flatMap(this::recommendFor)
-                    .doOnNext(served -> record(served, start))
-                    .map(Served::answer);
+                    .doOnNext(answered -> record(answered, start))
+                    .map(answered -> answered.served().answer());
         });
     }
 
@@ -82,26 +83,35 @@ public class GetRecommendationsUseCase implements GetRecommendationsPort {
                         : Mono.error(new RecommendationRateLimitException(decision.retryAfter().toSeconds())));
     }
 
-    private Mono<Served> recommendFor(Playlist playlist) {
+    private Mono<Answered> recommendFor(Playlist playlist) {
         if (playlist.songs().isEmpty()) {
-            return fallbackFor(playlist, ErrorMessageEnum.RECOMMENDATION_EMPTY_PLAYLIST.format(), 0, 0);
+            return fallbackFor(playlist, ErrorMessageEnum.RECOMMENDATION_EMPTY_PLAYLIST.format(), 0, 0)
+                    .map(served -> new Answered(served, provider.identity()));
         }
+        // The same provider for the whole request: the key, the prompt and the version of the answer match.
+        return provider.current()
+                .flatMap(current -> cachedOrAsked(current, playlist)
+                        .map(served -> new Answered(served, current.identity())));
+    }
+
+    private Mono<Served> cachedOrAsked(RecommendationProviderPort current, Playlist playlist) {
         RecommendationCacheKey key = RecommendationCacheKey.of(
-                playlist.songs(), provider.identity(), catalog.catalog().version());
+                playlist.songs(), current.identity(), catalog.catalog().version());
         return cache.find(key)
                 .map(saved -> new Served(RecommendationSet.fromAi(
                         playlist.name(), saved.promptVersion(), saved.recommendations()), true, 0, 0))
-                .switchIfEmpty(Mono.defer(() -> askAndSave(playlist, key)));
+                .switchIfEmpty(Mono.defer(() -> askAndSave(current, playlist, key)));
     }
 
     // The ladder: candidates and a model that chooses; the nearest candidates if the model gives nothing; the default
     // list if there are no candidates. Only an answer of the model is saved: after a failure the next request tries
     // again.
-    private Mono<Served> askAndSave(Playlist playlist, RecommendationCacheKey key) {
+    private Mono<Served> askAndSave(
+            RecommendationProviderPort current, Playlist playlist, RecommendationCacheKey key) {
         return Mono.defer(() -> {
             long start = System.nanoTime();
             return candidatesFor(playlist)
-                    .flatMap(candidates -> chooseAmong(playlist, key, candidates, start))
+                    .flatMap(candidates -> chooseAmong(current, playlist, key, candidates, start))
                     // Only the search can still fail here.
                     .onErrorResume(error -> fallbackFor(playlist, reasonOf(error), 0, millisSince(start)));
         });
@@ -109,10 +119,14 @@ public class GetRecommendationsUseCase implements GetRecommendationsPort {
 
     // The time limit covers the search and the model: the model has what the search left.
     private Mono<Served> chooseAmong(
-            Playlist playlist, RecommendationCacheKey key, List<CatalogSong> candidates, long start) {
+            RecommendationProviderPort current,
+            Playlist playlist,
+            RecommendationCacheKey key,
+            List<CatalogSong> candidates,
+            long start) {
         long retrievalMillis = millisSince(start);
         Duration remaining = timeout.minusNanos(System.nanoTime() - start);
-        return askTheProvider(playlist, candidates, remaining)
+        return askTheProvider(current, playlist, candidates, remaining)
                 .flatMap(answer -> cache
                         .save(key, new CachedRecommendations(answer.promptVersion(), answer.recommendations()))
                         .thenReturn(new Served(answer, false, candidates.size(), retrievalMillis)))
@@ -135,18 +149,21 @@ public class GetRecommendationsUseCase implements GetRecommendationsPort {
     }
 
     private Mono<RecommendationSet> askTheProvider(
-            Playlist playlist, List<CatalogSong> candidates, Duration remaining) {
+            RecommendationProviderPort current,
+            Playlist playlist,
+            List<CatalogSong> candidates,
+            Duration remaining) {
         if (remaining.isNegative() || remaining.isZero()) {
             return Mono.error(outOfTime());
         }
-        return Mono.defer(() -> provider.choose(playlist.songs(), candidates))
+        return Mono.defer(() -> current.choose(playlist.songs(), candidates))
                 .timeout(remaining, Mono.error(this::outOfTime))
                 .map(choices -> RecommendationRules.fromChoices(choices, candidates))
                 .filter(chosen -> !chosen.isEmpty())
                 .switchIfEmpty(Mono.error(() -> new RecommendationProviderUnavailableException(
                         ErrorMessageEnum.RECOMMENDATION_NO_VALID_SUGGESTIONS)))
                 .map(chosen -> RecommendationSet.fromAi(
-                        playlist.name(), provider.identity().promptVersion(), chosen));
+                        playlist.name(), current.identity().promptVersion(), chosen));
     }
 
     private RecommendationProviderUnavailableException outOfTime() {
@@ -170,9 +187,10 @@ public class GetRecommendationsUseCase implements GetRecommendationsPort {
                         false, candidates, retrievalMillis));
     }
 
-    private void record(Served served, long start) {
-        LOG.info(SERVED, served.answer().origin().externalValue(), served.cached(), provider.identity().model(),
-                provider.identity().promptVersion(), catalog.catalog().version(), served.candidates(),
+    private void record(Answered answered, long start) {
+        Served served = answered.served();
+        LOG.info(SERVED, served.answer().origin().externalValue(), served.cached(), answered.identity().model(),
+                answered.identity().promptVersion(), catalog.catalog().version(), served.candidates(),
                 served.retrievalMillis(), millisSince(start));
     }
 
@@ -187,5 +205,9 @@ public class GetRecommendationsUseCase implements GetRecommendationsPort {
 
     // What was answered and how it was obtained, for the record.
     private record Served(RecommendationSet answer, boolean cached, int candidates, long retrievalMillis) {
+    }
+
+    // The same, with the model and prompt that were in force for the request.
+    private record Answered(Served served, ProviderIdentity identity) {
     }
 }

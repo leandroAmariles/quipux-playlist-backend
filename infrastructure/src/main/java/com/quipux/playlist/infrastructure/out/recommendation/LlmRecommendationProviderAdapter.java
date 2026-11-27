@@ -9,7 +9,9 @@ import com.quipux.playlist.domain.model.Song;
 import com.quipux.playlist.domain.model.enums.ErrorMessageEnum;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
@@ -30,8 +32,14 @@ import reactor.core.scheduler.Schedulers;
  */
 public class LlmRecommendationProviderAdapter implements RecommendationProviderPort {
 
+    private static final String GENERATION_NAME = "generation_name";
+    private static final String TRACE_NAME = "trace_name";
+    private static final String VERSION = "version";
+    private static final String SESSION = "session_id";
+    private static final String TRACE = "recomendaciones";
+
     private final ChatModel chatModel;
-    private final PromptTemplate prompt;
+    private final Mono<ActivePrompt> activePrompt;
     private final LlmResponseParser parser;
     private final LlmSettings settings;
     private final CircuitBreaker circuitBreaker;
@@ -43,8 +51,18 @@ public class LlmRecommendationProviderAdapter implements RecommendationProviderP
             LlmResponseParser parser,
             LlmSettings settings,
             CircuitBreaker circuitBreaker) {
+        this(chatModel, Mono.just(new ActivePrompt(settings.identity().promptVersion(), prompt)), parser, settings,
+                circuitBreaker);
+    }
+
+    public LlmRecommendationProviderAdapter(
+            ChatModel chatModel,
+            Mono<ActivePrompt> activePrompt,
+            LlmResponseParser parser,
+            LlmSettings settings,
+            CircuitBreaker circuitBreaker) {
         this.chatModel = chatModel;
-        this.prompt = prompt;
+        this.activePrompt = activePrompt;
         this.parser = parser;
         this.settings = settings;
         this.circuitBreaker = circuitBreaker;
@@ -57,10 +75,20 @@ public class LlmRecommendationProviderAdapter implements RecommendationProviderP
     }
 
     @Override
+    public Mono<RecommendationProviderPort> current() {
+        return activePrompt.map(Pinned::new);
+    }
+
+    @Override
     public Mono<List<ModelChoice>> choose(List<Song> songs, List<CatalogSong> candidates) {
+        return activePrompt.flatMap(active -> chooseWith(active, songs, candidates));
+    }
+
+    private Mono<List<ModelChoice>> chooseWith(
+            ActivePrompt active, List<Song> songs, List<CatalogSong> candidates) {
         return Mono.defer(() -> {
             CandidateAliases aliases = CandidateAliases.of(candidates);
-            return Mono.fromSupplier(() -> requestFor(songs, aliases))
+            return Mono.fromSupplier(() -> requestFor(active, songs, aliases))
                     .flatMap(this::answerTo)
                     // Building the request loads classes and serializes: kept away from the event loop.
                     .subscribeOn(Schedulers.boundedElastic())
@@ -69,15 +97,27 @@ public class LlmRecommendationProviderAdapter implements RecommendationProviderP
         });
     }
 
-    private Prompt requestFor(List<Song> songs, CandidateAliases candidates) {
-        PromptTemplate.Messages messages = prompt.render(settings.sample().of(songs), candidates);
+    private Prompt requestFor(ActivePrompt active, List<Song> songs, CandidateAliases candidates) {
+        PromptTemplate.Messages messages = active.template().render(settings.sample().of(songs), candidates);
         return new Prompt(
                 List.of(new SystemMessage(messages.system()), new UserMessage(messages.user())),
-                optionsLimitedTo(candidates));
+                optionsLimitedTo(candidates, active.version()));
     }
 
-    // The options of a request replace those of the model, so they are built from them: only the format changes.
-    private OpenAiChatOptions optionsLimitedTo(CandidateAliases candidates) {
+    // What the gateway records in the trace of this call.
+    private Map<String, String> traceOf(String promptVersion) {
+        Map<String, String> metadata = new LinkedHashMap<>();
+        metadata.put(GENERATION_NAME, TRACE);
+        metadata.put(TRACE_NAME, TRACE);
+        metadata.put(VERSION, promptVersion);
+        if (!settings.traceSession().isBlank()) {
+            metadata.put(SESSION, settings.traceSession());
+        }
+        return metadata;
+    }
+
+    // The options of a request replace those of the model, so they are built from them.
+    private OpenAiChatOptions optionsLimitedTo(CandidateAliases candidates, String promptVersion) {
         OpenAiChatModel.ResponseFormat format = OpenAiChatModel.ResponseFormat.builder()
                 .type(OpenAiChatModel.ResponseFormat.Type.JSON_SCHEMA)
                 .jsonSchema(ChoiceSchema.of(candidates.aliases()))
@@ -85,6 +125,7 @@ public class LlmRecommendationProviderAdapter implements RecommendationProviderP
                 .build();
         return ((OpenAiChatOptions) chatModel.getOptions()).mutate()
                 .responseFormat(format)
+                .metadata(traceOf(promptVersion))
                 .build();
     }
 
@@ -112,5 +153,25 @@ public class LlmRecommendationProviderAdapter implements RecommendationProviderP
     // The chunk that only reports the usage carries no result.
     private static String textOf(ChatResponse chunk) {
         return chunk.getResult() == null ? "" : Objects.toString(chunk.getResult().getOutput().getText(), "");
+    }
+
+    // The adapter with one prompt for the whole of a request. The limit of calls and the circuit are shared.
+    private final class Pinned implements RecommendationProviderPort {
+
+        private final ActivePrompt active;
+
+        private Pinned(ActivePrompt active) {
+            this.active = active;
+        }
+
+        @Override
+        public ProviderIdentity identity() {
+            return new ProviderIdentity(active.version(), settings.identity().model());
+        }
+
+        @Override
+        public Mono<List<ModelChoice>> choose(List<Song> songs, List<CatalogSong> candidates) {
+            return chooseWith(active, songs, candidates);
+        }
     }
 }
