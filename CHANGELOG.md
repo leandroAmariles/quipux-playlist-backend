@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/leandroAmariles/quipux-playlist-backend/compare/v0.3.1...v0.4.0) (2026-11-27)
+
+
+### Features
+
+* **HU-14:** evaluate the recommendations and follow their prompts and traces ([4b42494](https://github.com/leandroAmariles/quipux-playlist-backend/commit/4b424943a4b629429eb0b3bbfa60db8a1994b6f7))
+
+
+### Documentation
+
+* **HU-14:** record the CI fix taken from main ([66e78c9](https://github.com/leandroAmariles/quipux-playlist-backend/commit/66e78c99e583818da2c25242ab9a0143baa8e4ed))
+
 ## [0.3.1](https://github.com/leandroAmariles/quipux-playlist-backend/compare/v0.3.0...v0.3.1) (2026-11-27)
 
 
