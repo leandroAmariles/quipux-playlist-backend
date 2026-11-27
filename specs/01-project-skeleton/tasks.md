@@ -138,7 +138,7 @@ archivo como dicen los documentos de diseño, aunque ya exista. Ninguna tarea se
 - [X] T026 Marcar en `docs/backlog.md` los criterios de HU-01 que quedaron comprobados
 - [X] T027 Ejecutar `./mvnw clean verify` y revisar `git status` y el diff completo: sin archivos temporales ni de las
       roturas provocadas
-- [ ] T028 Con la aprobación del usuario: commits atómicos en formato Conventional Commits en
+- [X] T028 Con la aprobación del usuario: commits atómicos en formato Conventional Commits en
       `feature/01-project-skeleton`, push y PR hacia `main`
 
 ---
