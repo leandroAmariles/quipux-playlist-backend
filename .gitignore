@@ -10,3 +10,7 @@ target/
 .env
 .env.*
 !.env.example
+*.class
+*.tmp
+# Local AI usage telemetry
+specs/*/.token-usage.json
