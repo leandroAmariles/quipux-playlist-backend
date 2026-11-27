@@ -1,0 +1,12 @@
+target/
+.idea/
+*.iml
+.vscode/
+*.log
+*.orig
+*.rej
+*.bak
+*.swp
+.env
+.env.*
+!.env.example
