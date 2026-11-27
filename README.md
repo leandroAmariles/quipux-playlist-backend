@@ -65,21 +65,21 @@ no arranca. Las contraseñas las eliges tú.
 En Linux, macOS o Git Bash:
 
 ```bash
-./mvnw package
+./mvnw clean package
 export JWT_SECRET="$(openssl rand -base64 48)"
 export DEMO_USER_PASSWORD="<elige una>"
 export DEMO_ADMIN_PASSWORD="<elige otra>"
-java -jar bootstrap/target/playlist-bootstrap-0.1.0-SNAPSHOT.jar
+java -jar bootstrap/target/playlist-bootstrap-*.jar
 ```
 
 En PowerShell:
 
 ```powershell
-.\mvnw.cmd package
+.\mvnw.cmd clean package
 $env:JWT_SECRET = "<una clave larga, de 32 caracteres o más>"
 $env:DEMO_USER_PASSWORD = "<elige una>"
 $env:DEMO_ADMIN_PASSWORD = "<elige otra>"
-java -jar bootstrap/target/playlist-bootstrap-0.1.0-SNAPSHOT.jar
+java -jar (Get-Item bootstrap\target\playlist-bootstrap-*.jar).FullName
 ```
 
 La API queda en `http://localhost:8080`. Si ese puerto está ocupado, define `SERVER_PORT` o añade
@@ -118,6 +118,70 @@ variables de entorno ni conexión con Spotify.
 
 Falla ante una violación de Checkstyle, una dependencia prohibida entre capas o menos del 80 % de líneas cubiertas en
 un módulo.
+
+## Integración continua
+
+Cada PR y cada push a `main` ejecutan tres comprobaciones ([`ci.yml`](.github/workflows/ci.yml)), y `main` solo admite
+PR con las tres en verde.
+
+| Comprobación | Falla ante | En local |
+|---|---|---|
+| `verify` | una prueba, la cobertura o Checkstyle | `./mvnw verify` |
+| `qodana` | un problema de severidad crítica o alta | Qodana, abajo |
+| `trivy` | un secreto, o una dependencia entregada con una vulnerabilidad `HIGH` o `CRITICAL` corregible | Trivy, abajo |
+
+```bash
+docker run --rm -v "$PWD:/data/project" jetbrains/qodana-jvm-community:2026.3
+
+./mvnw clean package -Dmaven.test.skip=true
+trivy rootfs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 bootstrap/target
+trivy fs --scanners secret --severity HIGH,CRITICAL --exit-code 1 --skip-dirs "**/target" .
+```
+
+En Git Bash, antepón `MSYS_NO_PATHCONV=1` al comando de Docker.
+
+Un hallazgo que no se pueda corregir se excluye de uno en uno y con su motivo: en Trivy, con un `.trivyignore.yaml`
+(campo `statement`) y `trivyignores: .trivyignore.yaml` en el paso del workflow; en Qodana, con `exclude` en
+[`qodana.yaml`](qodana.yaml).
+
+Si una comprobación falla porque no pudo descargar Maven, una dependencia o la base de vulnerabilidades, usa
+**Re-run failed jobs**.
+
+## Versiones e imágenes
+
+[release-please](https://github.com/googleapis/release-please) calcula la versión a partir de los
+[Conventional Commits](https://www.conventionalcommits.org/es/) que llegan a `main`: `fix` sube el parche y `feat` o un
+cambio incompatible suben el menor mientras la versión sea menor que 1.0.0. `docs`, `chore`, `test`, `refactor`,
+`build` y `ci` no generan versión.
+
+1. Con cambios publicables, abre o actualiza un PR `chore(main): release X.Y.Z` con la versión en los `pom.xml` y el
+   `CHANGELOG.md`. Pasa por el mismo CI que los demás.
+2. Al fusionarlo se crean el tag `vX.Y.Z` y la release, y el mismo workflow
+   ([`release.yml`](.github/workflows/release.yml)) construye la imagen, la analiza con Trivy y la publica.
+
+La imagen es `ghcr.io/leandroamariles/quipux-playlist-backend:X.Y.Z`, para `linux/amd64` y sin etiqueta `latest`.
+
+- Si la publicación falla por una causa pasajera, **Re-run failed jobs** publica esa misma versión.
+- Si Trivy rechaza la imagen, esa versión se queda sin imagen: se corrige y sale en la siguiente.
+
+## Ajustes de GitHub
+
+No viven en el código, así que hay que repetirlos si se recrea el repositorio.
+
+1. **Protección de `main`:**
+
+   ```bash
+   gh api -X PUT repos/leandroAmariles/quipux-playlist-backend/branches/main/protection \
+     --input .github/branch-protection.json
+   gh api repos/leandroAmariles/quipux-playlist-backend/branches/main/protection
+   ```
+
+2. **Token de release-please:** en GitHub, **Settings → Developer settings → Fine-grained tokens**, crea uno limitado a
+   este repositorio con **Contents**, **Pull requests** e **Issues** en lectura y escritura. Guárdalo como secreto con
+   `gh secret set RELEASE_PLEASE_TOKEN -R leandroAmariles/quipux-playlist-backend`, que lo pide sin mostrarlo. Cuando
+   venza, el workflow `Release` falla: genera otro y sustituye el secreto.
+3. **Imagen pública:** tras la primera publicación, abre el paquete y usa **Package settings → Change visibility →
+   Public**. En GitHub no se puede volver a privado.
 
 ## Documentación interactiva
 
