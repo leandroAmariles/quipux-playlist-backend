@@ -30,6 +30,8 @@ class LangfusePromptSourceTest {
             "Instrucciones de Langfuse\n\n<lista>{{lista}}</lista>\n<candidatas>{{candidatas}}</candidatas>";
     private static final ActivePrompt LOCAL = new ActivePrompt(
             "v2", new PromptTemplate(new ClassPathResource("prompts/recommendations/v2.txt")));
+    // Far above a cold start: the first request of a new JVM can take more than a second.
+    private static final Duration AMPLE_TIMEOUT = Duration.ofSeconds(10);
     private static WireMockServer langfuse;
 
     @BeforeAll
@@ -70,7 +72,9 @@ class LangfusePromptSourceTest {
     void usesTheFileWhenLangfuseIsSlow() {
         answers(okJson(promptJson(REMOTE_TEXT)).withFixedDelay(2_000));
 
-        expectTheFile();
+        StepVerifier.create(source(Duration.ofSeconds(1), Duration.ofMinutes(1)).active())
+                .expectNext(LOCAL)
+                .verifyComplete();
     }
 
     @Test
@@ -132,7 +136,11 @@ class LangfusePromptSourceTest {
     }
 
     private static LangfusePromptSource source(Duration timeToLive) {
+        return source(AMPLE_TIMEOUT, timeToLive);
+    }
+
+    private static LangfusePromptSource source(Duration timeout, Duration timeToLive) {
         return new LangfusePromptSource(
-                WebClient.create(langfuse.baseUrl()), "recomendaciones-v2", LOCAL, Duration.ofSeconds(1), timeToLive);
+                WebClient.create(langfuse.baseUrl()), "recomendaciones-v2", LOCAL, timeout, timeToLive);
     }
 }
