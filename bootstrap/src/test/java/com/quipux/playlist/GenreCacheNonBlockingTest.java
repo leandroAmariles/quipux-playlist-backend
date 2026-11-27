@@ -14,6 +14,7 @@ import org.testcontainers.utility.DockerImageName;
 import reactor.blockhound.BlockHound;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -61,12 +62,17 @@ class GenreCacheNonBlockingTest extends SpotifyApiTestSupport {
 
     private Flux<String> everyCachedOutcome(String prefix) {
         return Flux.concat(
-                redisTemplate.delete(CACHE_KEY).then(Mono.fromRunnable(() -> spotifyOffers("[\"rock\"]"))),
+                evictAndStub(() -> spotifyOffers("[\"rock\"]")),
                 genres(webClient).map(body -> String.valueOf(body.get("origen"))),
                 genres(webClient).map(body -> String.valueOf(body.get("origen"))),
                 create(playlist(prefix, Map.of("titulo", "Uno", "genero", "rock"))).map(String::valueOf),
-                redisTemplate.delete(CACHE_KEY).then(Mono.fromRunnable(() -> spotifyFails(503))),
+                evictAndStub(() -> spotifyFails(503)),
                 genres(webClient).map(body -> String.valueOf(body.get("origen"))));
+    }
+
+    private <T> Mono<T> evictAndStub(Runnable stubbing) {
+        return redisTemplate.delete(CACHE_KEY)
+                .then(Mono.<T>fromRunnable(stubbing).subscribeOn(Schedulers.boundedElastic()));
     }
 
     private static GenericContainer<?> startRedis() {
