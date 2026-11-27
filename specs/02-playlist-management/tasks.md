@@ -236,7 +236,7 @@ description: "Tareas de HU-02: gestión de listas de reproducción"
 - [X] T064 Comprobar que cada criterio de HU-02 tiene una prueba (SC-002) y marcarlo en `docs/backlog.md`
 - [X] T065 Ejecutar `./mvnw clean verify` y revisar `git status` y el diff completo: sin archivos temporales ni
       secretos
-- [ ] T066 Con la aprobación del usuario: commits atómicos `…(HU-02): …` en `feature/02-playlist-management`, push y
+- [X] T066 Con la aprobación del usuario: commits atómicos `…(HU-02): …` en `feature/02-playlist-management`, push y
       PR hacia `main`
 
 ---
