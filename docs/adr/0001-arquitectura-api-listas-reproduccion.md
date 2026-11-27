@@ -2,7 +2,7 @@
 
 - **Estado:** Aceptado 
 - **Fecha:** 2026-11-26
-- **Actualizado:** 2026-11-26. Se reemplaza el monorepo por tres repositorios (sección 3), se añade Argo CD (sección 7) y CI/CD con GitHub Actions (sección 13).
+- **Actualizado:** 2026-11-26. Se reemplaza el monorepo por tres repositorios (sección 3), se añade Argo CD (sección 7) y CI/CD con GitHub Actions (sección 13). El backlog se agrupa en 11 historias: la prueba de Spotify pasa de la fase 1 a la 3 (sección 10 y orden de ejecución) y el CI en verde en infra se exige desde la fase 9 (sección 13).
 - **Ubicación:** `docs/adr/0001-arquitectura-api-listas-reproduccion.md` en el repositorio de backend
 
 
@@ -194,7 +194,7 @@ springdoc-openapi para WebFlux, con el esquema Bearer JWT declarado.
 
 Según la [guía de migración de febrero 2026](https://developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide), las apps nuevas en modo desarrollo ya no tienen `GET /browse/categories` y el dueño necesita Premium activo. `GET /recommendations/available-genre-seeds` no figura como eliminado, pero su disponibilidad no está confirmada.
 
-- **Primer paso del desarrollo:** probar ambos endpoints con las credenciales reales.
+- **Primer paso de la fase de géneros (fase 3):** probar ambos endpoints con las credenciales reales.
 - Puerto `GenreProvider` con un adaptador para Spotify (client credentials con `WebClient`) y otro de respaldo con una lista local.
 - La API expone `GET /genres`, indica el origen de los datos y el README explica la limitación.
 - Credenciales solo por variables de entorno. Nunca en el repositorio.
@@ -233,7 +233,7 @@ La web llama a la API por una ruta del mismo origen: proxy de desarrollo de Angu
 - **Acciones fijadas por SHA de commit**, no por tag. `trivy-action` sufrió en marzo de 2026 un [ataque a la cadena de suministro](https://github.com/aquasecurity/trivy/security/advisories/GHSA-69fq-xp46-6x23) que reescribió sus tags. Los permisos de cada workflow se limitan al mínimo.
 - Trivy hace fallar el pipeline ante vulnerabilidades `HIGH` o `CRITICAL` con corrección disponible.
 - release-please usa Conventional Commits. Lo que crea con `GITHUB_TOKEN` [no dispara otros workflows](https://github.com/googleapis/release-please-action), así que usa un token propio de cada repositorio: sin él, el CI no correría en el PR de release y la protección de `main` lo bloquearía. La imagen se construye en el mismo workflow, condicionada a `release_created`.
-- **Rama `main` protegida** en los tres repositorios: los cambios entran por PR con el CI en verde. En el plan gratuito de GitHub esto requiere repositorios públicos.
+- **Rama `main` protegida** en los tres repositorios: los cambios entran por PR con el CI en verde. En infra se exige solo el PR hasta que exista su CI (fase 9). En el plan gratuito de GitHub esto requiere repositorios públicos.
 - **Dependabot** propone actualizaciones de Maven, npm, Docker y GitHub Actions, incluidos los SHA fijados, con mensajes en formato Conventional Commits.
 - Las imágenes se publican en GHCR con el número de versión como tag.
 - El workflow de la aplicación abre un PR en el repositorio de infra con el nuevo tag. Para esto necesita un token con permisos solo sobre ese repositorio, guardado como secreto. Al fusionar el PR, Argo CD despliega.
@@ -254,9 +254,9 @@ Se prioriza la calidad sobre el plazo. Las horas son una estimación orientativa
 
 | Fase | Contenido | Horas |
 |---|---|---|
-| 1 | Repositorios, módulos Maven, JaCoCo, Checkstyle y prueba de Spotify | 2 |
+| 1 | Repositorios, módulos Maven, JaCoCo y Checkstyle | 1,5 |
 | 2 | Dominio, persistencia, 4 endpoints y sus pruebas | 3 |
-| 3 | JWT y géneros | 1,5 |
+| 3 | JWT, prueba de Spotify y géneros | 2 |
 | 4 | Angular y sus pruebas | 2,5 |
 | 5 | Postman, OpenAPI y README | 1 |
 | 6 | Docker y Compose | 0,75 |
