@@ -8,7 +8,9 @@ import java.util.List;
 public record RecommendationsResponseDto(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, maxLength = PlaylistConstraints.NAME_MAX_LENGTH)
         @JsonProperty("lista") String playlistName,
-        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {"IA", "RESPALDO"},
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {"IA", "SIMILITUD", "RESPALDO"},
+                description = "IA: las eligió el modelo entre canciones del catálogo. SIMILITUD: el modelo no dio un "
+                        + "resultado y son las canciones del catálogo más parecidas. RESPALDO: lista por defecto",
                 example = "RESPALDO")
         @JsonProperty("origen") String origin,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Vacío si el origen no es IA")

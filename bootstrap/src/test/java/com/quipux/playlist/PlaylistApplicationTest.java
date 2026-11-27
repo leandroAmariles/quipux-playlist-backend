@@ -21,9 +21,10 @@ class PlaylistApplicationTest {
         assertThat(context).isInstanceOf(ReactiveWebApplicationContext.class);
     }
 
+    // The one exception is the catalog of songs, with a database of its own that nothing else receives (ADR-0002).
     @Test
-    void accessesDataThroughR2dbcOnly() {
+    void accessesUsersAndPlaylistsThroughR2dbcOnly() {
         assertThat(context.getBeanNamesForType(ConnectionFactory.class)).isNotEmpty();
-        assertThat(context.getBeanNamesForType(DataSource.class)).isEmpty();
+        assertThat(context.getBeanNamesForType(DataSource.class)).containsExactly("catalogDataSource");
     }
 }

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -26,9 +27,12 @@ import reactor.test.StepVerifier;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class RecommendationLimitsApiTest extends AiApiTestSupport {
 
+    @Autowired
+    private InMemorySongCatalog catalog;
+
     @Test
     void callsTheModelOnceForAnUnchangedPlaylist() {
-        modelAnswers(suggestions("New|Singer"));
+        modelAnswers(suggestions("c1"));
 
         Flux<Map<String, Object>> answers = create(playlist("limit-cache", song("Same")))
                 .thenMany(Flux.range(0, 10).concatMap(index -> recommendationsOf("limit-cache")));
@@ -38,11 +42,12 @@ class RecommendationLimitsApiTest extends AiApiTestSupport {
                         .first().satisfies(first -> assertThat(first).containsEntry("origen", "IA")))
                 .verifyComplete();
         assertThat(gatewayRequests()).hasSize(1);
+        assertThat(catalog.searches()).isEqualTo(1);
     }
 
     @Test
     void sharesTheSavedAnswerBetweenEqualPlaylistsUnderEachName() {
-        modelAnswers(suggestions("New|Singer"));
+        modelAnswers(suggestions("c1"));
 
         StepVerifier.create(create(playlist("limit-first", song("Twin")))
                         .then(recommendationsOf("limit-first"))
@@ -57,7 +62,7 @@ class RecommendationLimitsApiTest extends AiApiTestSupport {
 
     @Test
     void callsTheModelAgainWhenThePlaylistIsCreatedWithOtherSongs() {
-        modelAnswers(suggestions("New|Singer"));
+        modelAnswers(suggestions("c1"));
 
         StepVerifier.create(create(playlist("limit-changed", song("Before")))
                         .then(recommendationsOf("limit-changed"))
@@ -70,15 +75,15 @@ class RecommendationLimitsApiTest extends AiApiTestSupport {
     }
 
     @Test
-    void doesNotSaveTheDefaultAnswer() {
+    void doesNotSaveAnAnswerBySimilarity() {
         gatewayAnswers(aResponse().withStatus(500));
         Mono<Map<String, Object>> failed = create(playlist("limit-retry", song("Retry")))
                 .then(recommendationsOf("limit-retry"));
         StepVerifier.create(failed)
-                .assertNext(answer -> assertThat(answer).containsEntry("origen", "RESPALDO"))
+                .assertNext(answer -> assertThat(answer).containsEntry("origen", "SIMILITUD"))
                 .verifyComplete();
 
-        modelAnswers(suggestions("New|Singer"));
+        modelAnswers(suggestions("c1"));
 
         StepVerifier.create(recommendationsOf("limit-retry"))
                 .assertNext(answer -> assertThat(answer).containsEntry("origen", "IA"))
@@ -88,7 +93,7 @@ class RecommendationLimitsApiTest extends AiApiTestSupport {
 
     @Test
     void answersTheEleventhRequestOfAUserWith429AndKeepsServingTheOthers() {
-        modelAnswers(suggestions("New|Singer"));
+        modelAnswers(suggestions("c1"));
         String path = "/lists/limit-quota/recommendations";
         StepVerifier.create(create(playlist("limit-quota", song("Quota")))
                         .thenMany(Flux.range(0, 10).concatMap(index -> status(webClient, HttpMethod.GET, path))))
@@ -134,7 +139,7 @@ class RecommendationLimitsApiTest extends AiApiTestSupport {
 
     @Test
     void doesNotQueueTheCallsOverTheMaximum() {
-        gatewayAnswers(streamOf(suggestions("New|Singer")).withFixedDelay(1_000));
+        gatewayAnswers(streamOf(suggestions("c1")).withFixedDelay(1_000));
         Flux<String> names = Flux.just("limit-a", "limit-b", "limit-c");
 
         Mono<List<Object>> origins = names
@@ -144,14 +149,14 @@ class RecommendationLimitsApiTest extends AiApiTestSupport {
                 .collectList();
 
         StepVerifier.create(origins)
-                .assertNext(all -> assertThat(all).containsExactlyInAnyOrder("IA", "IA", "RESPALDO"))
+                .assertNext(all -> assertThat(all).containsExactlyInAnyOrder("IA", "IA", "SIMILITUD"))
                 .verifyComplete();
         assertThat(gatewayRequests()).hasSize(2);
     }
 
     @Test
     void sendsAtMostFiftySongs() {
-        modelAnswers(suggestions("New|Singer"));
+        modelAnswers(suggestions("c1"));
         Object[] songs = IntStream.rangeClosed(1, 51)
                 .mapToObj(index -> song("Number " + index))
                 .toArray();

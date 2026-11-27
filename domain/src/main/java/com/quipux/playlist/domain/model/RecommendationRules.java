@@ -1,10 +1,14 @@
 package com.quipux.playlist.domain.model;
 
 import com.quipux.playlist.domain.model.constants.RecommendationConstraints;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -16,17 +20,46 @@ public final class RecommendationRules {
     }
 
     /**
-     * The suggestions of a model that can be delivered: complete, within size, not already in the playlist and without
-     * repetitions. A long reason is trimmed instead of discarding the suggestion. It may be empty.
+     * The songs a model may choose from: the nearest ones that the current catalog holds and that are nowhere in the
+     * playlist, in the order of their proximity. It may be empty.
      */
-    public static List<Recommendation> validate(List<Recommendation> suggestions, List<Song> songs) {
-        Set<SongIdentity> taken = new HashSet<>(identitiesOf(songs));
-        return suggestions.stream()
+    public static List<CatalogSong> candidates(
+            List<UUID> nearest, SongCatalog catalog, List<Song> songs, int maximum) {
+        Set<SongIdentity> known = identitiesOf(songs);
+        return nearest.stream()
+                .distinct()
+                .map(catalog::find)
+                .flatMap(Optional::stream)
+                .filter(song -> !known.contains(SongIdentity.of(song.title(), song.artist())))
+                .limit(maximum)
+                .toList();
+    }
+
+    /**
+     * What a model chose among the candidates: unknown and repeated choices are discarded, the data come from the
+     * catalog and a long reason is trimmed. It may be empty.
+     */
+    public static List<Recommendation> fromChoices(List<ModelChoice> choices, List<CatalogSong> candidates) {
+        Map<UUID, CatalogSong> offered = candidates.stream()
+                .collect(Collectors.toMap(CatalogSong::id, Function.identity(), (first, same) -> first));
+        Map<UUID, ModelChoice> chosen = choices.stream()
                 .filter(Objects::nonNull)
-                .filter(RecommendationRules::isDeliverable)
-                .filter(suggestion -> taken.add(identityOf(suggestion)))
+                .filter(choice -> offered.containsKey(choice.catalogId()))
+                .collect(Collectors.toMap(ModelChoice::catalogId, Function.identity(), (first, same) -> first,
+                        LinkedHashMap::new));
+        return chosen.values().stream()
                 .limit(RecommendationConstraints.MAX_RECOMMENDATIONS)
-                .map(RecommendationRules::normalized)
+                .map(choice -> verified(offered.get(choice.catalogId()), choice.reason()))
+                .toList();
+    }
+
+    /**
+     * The nearest candidates, given when the model has no result: at most five, with a fixed reason.
+     */
+    public static List<Recommendation> similar(List<CatalogSong> candidates) {
+        return candidates.stream()
+                .limit(RecommendationConstraints.MAX_RECOMMENDATIONS)
+                .map(song -> verified(song, RecommendationConstraints.SIMILARITY_REASON))
                 .toList();
     }
 
@@ -36,41 +69,23 @@ public final class RecommendationRules {
     public static List<Recommendation> fallbackFor(DefaultRecommendations defaults, List<Song> songs) {
         Set<SongIdentity> known = identitiesOf(songs);
         return defaults.recommendations().stream()
-                .filter(entry -> !known.contains(identityOf(entry)))
+                .filter(entry -> !known.contains(SongIdentity.of(entry.title(), entry.artist())))
                 .limit(RecommendationConstraints.MAX_RECOMMENDATIONS)
                 .toList();
     }
 
-    private static boolean isDeliverable(Recommendation suggestion) {
-        return isPresent(suggestion.title(), RecommendationConstraints.TITLE_MAX_LENGTH)
-                && isPresent(suggestion.artist(), RecommendationConstraints.ARTIST_MAX_LENGTH)
-                && fits(suggestion.genre(), RecommendationConstraints.GENRE_MAX_LENGTH);
-    }
-
-    private static boolean isPresent(String value, int maximum) {
-        return value != null && !value.isBlank() && fits(value, maximum);
-    }
-
-    private static boolean fits(String value, int maximum) {
-        return value == null || value.length() <= maximum;
-    }
-
-    private static Recommendation normalized(Recommendation suggestion) {
+    private static Recommendation verified(CatalogSong song, String reason) {
         return new Recommendation(
-                suggestion.title(),
-                suggestion.artist(),
-                Objects.toString(suggestion.genre(), ""),
-                TextLimits.trim(Objects.toString(suggestion.reason(), ""),
-                        RecommendationConstraints.REASON_MAX_LENGTH));
+                song.id().toString(),
+                song.title(),
+                song.artist(),
+                song.genre(),
+                TextLimits.trim(Objects.toString(reason, ""), RecommendationConstraints.REASON_MAX_LENGTH));
     }
 
     private static Set<SongIdentity> identitiesOf(List<Song> songs) {
         return songs.stream()
                 .map(song -> SongIdentity.of(song.title(), song.artist()))
                 .collect(Collectors.toSet());
-    }
-
-    private static SongIdentity identityOf(Recommendation recommendation) {
-        return SongIdentity.of(recommendation.title(), recommendation.artist());
     }
 }

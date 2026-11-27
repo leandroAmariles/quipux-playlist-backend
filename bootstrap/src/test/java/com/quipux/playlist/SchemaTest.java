@@ -24,6 +24,17 @@ class SchemaTest {
                 .verifyComplete();
     }
 
+    // The catalog lives in PostgreSQL: nothing of it belongs to the database of users and playlists.
+    @Test
+    void createsNothingOfTheCatalog() {
+        String query = "SELECT COUNT(*) FROM information_schema.tables "
+                + "WHERE table_schema = 'CATALOG' OR table_name = 'SONG_EMBEDDING'";
+
+        StepVerifier.create(databaseClient.sql(query).map(row -> row.get(0, Long.class)).one())
+                .expectNext(0L)
+                .verifyComplete();
+    }
+
     @Test
     void acceptsSongOfAnExistingPlaylist() {
         String insertSong = "INSERT INTO song (playlist_id, title, artist, album, release_year, genre) "

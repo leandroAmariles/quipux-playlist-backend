@@ -60,7 +60,13 @@ No hace falta instalar Maven. Todos los comandos se ejecutan desde la raíz de e
 | `AI_API_KEY` | no | — | clave de LiteLLM; sin ella no se llama al modelo |
 | `AI_BASE_URL` | no | `http://localhost:4000/v1` | dirección de LiteLLM, terminada en `/v1` |
 | `AI_CHAT_MODEL` | no | `recomendador-chat` | alias del modelo de chat |
-| `AI_TIMEOUT` | no | `30s` | tiempo máximo total de la llamada al modelo |
+| `AI_TIMEOUT` | no | `30s` | tiempo máximo total de la búsqueda en el catálogo y la llamada al modelo |
+| `AI_EMBEDDING_MODEL` | no | `recomendador-embeddings` | alias del modelo de embeddings |
+| `AI_EMBEDDING_TIMEOUT` | no | `5s` | tiempo máximo de una petición de embeddings |
+| `CATALOG_DB_URL` | no | — | JDBC de PostgreSQL con pgvector; sin ella y sin contraseña no hay catálogo |
+| `CATALOG_DB_USER` | no | `catalog` | usuario de PostgreSQL |
+| `CATALOG_DB_PASSWORD` | no | — | contraseña de PostgreSQL; solo por variable de entorno |
+| `CATALOG_RETRIEVAL_TIMEOUT` | no | `5s` | tiempo máximo del embedding y la búsqueda juntos |
 
 Las tres obligatorias no tienen valor por defecto para que no haya secretos en el repositorio: sin ellas la aplicación
 no arranca. Las contraseñas las eliges tú.
@@ -267,25 +273,63 @@ sin detalles internos); `/actuator/health` y el resto de `/actuator/**` siguen e
 
 ## Recomendaciones con IA
 
-`GET /lists/{listName}/recommendations` sugiere hasta 5 canciones según las de la lista.
+`GET /lists/{listName}/recommendations` sugiere hasta 5 canciones de un catálogo propio, afines a las de la lista. Se
+buscan en PostgreSQL las 20 canciones del catálogo más cercanas que no estén en ella y el modelo elige entre esas.
 
 ```json
 {
   "lista": "Lista 1",
   "origen": "IA",
-  "versionPrompt": "v1",
+  "versionPrompt": "v2",
   "recomendaciones": [
-    { "idCatalogo": "", "titulo": "...", "artista": "...", "genero": "rock", "motivo": "..." }
+    { "idCatalogo": "<uuid>", "titulo": "...", "artista": "...", "genero": "jazz", "motivo": "..." }
   ]
 }
 ```
 
-- `origen` es `IA` cuando responde el modelo y `RESPALDO` cuando se usa la
-  [lista por defecto](infrastructure/src/main/resources/default-recommendations.properties).
-- **Las sugerencias no están verificadas:** el modelo puede inventar canciones o equivocar el artista. `idCatalogo` va
-  vacío hasta que exista un catálogo (HU-13). Los textos los escribe un modelo: trátalos como texto, no como HTML.
-- **Desactivada por defecto.** La aplicación arranca y las pruebas pasan sin modelos ni clave; entonces responde
-  siempre con `RESPALDO`.
+| `origen` | Cuándo | `idCatalogo` | `versionPrompt` |
+|---|---|---|---|
+| `IA` | el modelo eligió al menos una candidata | del catálogo | `v2` |
+| `SIMILITUD` | hay candidatas, pero el modelo falla o no da nada válido: las 5 más cercanas | del catálogo | vacío |
+| `RESPALDO` | no hay candidatas o la IA no se usa: [lista por defecto](infrastructure/src/main/resources/default-recommendations.properties) | vacío | vacío |
+
+- Con `IA` y `SIMILITUD`, título, artista y género salen del catálogo; del modelo solo se toman la elección y el motivo.
+  El motivo lo escribe un modelo: trátalo como texto, no como HTML.
+- **Desactivada por defecto.** La aplicación arranca y las pruebas pasan sin modelos, clave ni PostgreSQL; entonces
+  responde siempre con `RESPALDO`.
+
+### Catálogo
+
+[`catalog/songs.json`](infrastructure/src/main/resources/catalog/songs.json) tiene 214 canciones reunidas con ayuda de
+IA, sin datos de Spotify y con géneros de la lista local asignados a mano. Título, artista, álbum y año se contrastaron
+con [MusicBrainz](https://musicbrainz.org) (datos básicos, CC0): **las 214 coinciden**; las 14 que no coincidían se retiraron, como
+detalla [`docs/catalog-verification.md`](docs/catalog-verification.md). Para repetir la comprobación:
+
+```bash
+MUSICBRAINZ_CONTACT="<tu contacto>" python tools/catalog/verify_catalog.py
+```
+
+La aplicación valida el fichero al arrancar: de 200 a 500 canciones completas, sin repetidas y con géneros conocidos.
+
+### Indexación
+
+La indexación calcula los embeddings y los guarda en pgvector. Es un proceso aparte de la API
+(`java -jar playlist-bootstrap-*.jar index-catalog`, con las mismas variables de IA y catálogo) que termina con código
+0 o 1 e informa de cuántas canciones añadió, conservó y quitó.
+
+| Para | Con la composición de infra (`DC` = `docker compose -p quipux-ia -f compose.yaml -f compose.ai.yaml`) |
+|---|---|
+| Automática | se ejecuta sola al levantarla (servicio `catalog-index`) |
+| Repetir | `$DC run --rm catalog-index`; sin cambios no pide ningún embedding |
+| Tras cambiar `songs.json` | `$DC up -d --build` y reiniciar `api` |
+| Desde cero (por ejemplo, otro modelo tras el mismo alias) | detener, borrar el volumen `catalog-data`, levantar y reiniciar `api` |
+
+Cada canción se identifica por su contenido y por el modelo de embeddings. La aplicación no detecta que cambie el modelo
+detrás del mismo alias. Límite conocido: con campos muy largos, el embedding de la consulta solo tiene en cuenta las
+primeras canciones de la lista.
+
+El modelo de chat por defecto, `llama3.2:3b`, apenas elige mejor que al azar entre las candidatas (que ya son las más
+cercanas). Con GPU, `OLLAMA_CHAT_MODEL=qwen2.5:7b` elige bastante mejor; en CPU supera el tiempo máximo.
 
 ### Activarla
 
@@ -302,15 +346,23 @@ export AI_API_KEY="<clave de LiteLLM>"
 export AI_BASE_URL=http://localhost:4000/v1
 ```
 
+Para recomendar hacen falta además el alias `recomendador-embeddings` y el catálogo indexado en PostgreSQL
+(`CATALOG_DB_URL` y `CATALOG_DB_PASSWORD`).
+
 Con `AI_PROVIDER=openai` y sin `AI_API_KEY`, la aplicación arranca, lo avisa en el registro y usa el respaldo. No
 definas `OPENAI_LOG`: el registro de depuración de la librería puede escribir el prompt.
 
-### Cuándo se usa el respaldo
+### Cuándo se degrada
 
-Lista vacía, IA desactivada, más de `AI_TIMEOUT` sin respuesta, error de conexión o HTTP, respuesta vacía o que no es
-el JSON esperado, ninguna sugerencia válida, demasiadas llamadas simultáneas o cortacircuitos abierto. Siempre con
-`200`; una lista inexistente sigue siendo `404` y un fallo de la base de datos, `500`. Cada petición al endpoint envía
-como máximo una petición al modelo, sin reintentos.
+| Fallo | Resultado |
+|---|---|
+| Lista vacía, IA desactivada o sin clave, catálogo sin configurar, detenido, lento o sin indexar, fallo de los embeddings, sin candidatas | `RESPALDO` |
+| Modelo de chat: error, tiempo agotado, respuesta vacía o no válida, demasiadas llamadas simultáneas o cortacircuitos abierto | `SIMILITUD` |
+
+Siempre con `200`; una lista inexistente sigue siendo `404` y un fallo de la base de datos de listas, `500`.
+`AI_TIMEOUT` cubre la búsqueda y el modelo; la búsqueda tiene además su propio máximo
+(`CATALOG_RETRIEVAL_TIMEOUT`). Cada petición envía como máximo una petición de embeddings y una de chat, sin
+reintentos.
 
 ### Límites
 
@@ -326,13 +378,21 @@ como máximo una petición al modelo, sin reintentos.
 
 La caché y el contador de peticiones viven en memoria: se pierden al reiniciar y no se comparten entre réplicas.
 
-El prompt está en [`prompts/recommendations/v1.txt`](infrastructure/src/main/resources/prompts/recommendations/v1.txt).
+Del catálogo se ajustan con `playlist.catalog.`: `candidates` (20), `retrieval-timeout` (5 s), `index-batch-size`
+(50) y `pool.*` (4 conexiones; 2 s para conectar, 4 s de socket y 3 s por consulta). La respuesta guardada depende
+también de la versión del catálogo.
+
+El prompt está en [`prompts/recommendations/v2.txt`](infrastructure/src/main/resources/prompts/recommendations/v2.txt);
+`v1.txt`, el de HU-12, se conserva como referencia.
 La lista por defecto necesita al menos 5 canciones completas con géneros de la lista local: si cambias
 `playlist.genres.local-file`, revisa también `playlist.ai.default-recommendations-file`, o la aplicación no arrancará.
 
 ## Autoría IA
 
-Esta sección describe HU-12 (recomendaciones con IA). El registro completo está en [`AI-LOG.md`](AI-LOG.md).
+Esta sección describe HU-12 (recomendaciones con IA) y HU-13 (catálogo). El registro está en [`AI-LOG.md`](AI-LOG.md).
+
+En HU-13 el asistente de IA escribió la especificación, el plan, las tareas, el código, las pruebas, la composición, la
+lista de canciones y esta documentación. **Ninguna persona ha revisado todavía el código ni la lista de canciones.**
 
 | Parte | Quién |
 |---|---|

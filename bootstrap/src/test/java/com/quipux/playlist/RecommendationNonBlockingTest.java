@@ -48,7 +48,7 @@ class RecommendationNonBlockingTest extends AiApiTestSupport {
     void answersFromTheModelTheCacheAndTheDefaultsWithoutBlocking() {
         StepVerifier.create(everyOutcome("non-blocking"))
                 // model, saved answer, error, time limit, empty playlist, unknown playlist
-                .expectNext("200 IA", "200 IA", "200 RESPALDO", "200 RESPALDO", "200 RESPALDO", "404")
+                .expectNext("200 IA", "200 IA", "200 SIMILITUD", "200 SIMILITUD", "200 RESPALDO", "404")
                 .verifyComplete();
     }
 
@@ -61,7 +61,7 @@ class RecommendationNonBlockingTest extends AiApiTestSupport {
 
     private Flux<String> everyOutcome(String name) {
         return Flux.concat(
-                Mono.fromRunnable(() -> modelAnswers(suggestions("New|Singer"))),
+                Mono.fromRunnable(() -> modelAnswers(suggestions("c1"))),
                 created(name + "-ok").then(outcome(webClient, name + "-ok")),
                 outcome(webClient, name + "-ok"),
                 Mono.fromRunnable(() -> gatewayAnswers(aResponse().withStatus(500))),

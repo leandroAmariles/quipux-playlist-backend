@@ -6,7 +6,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 public record RecommendationDto(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED,
-                description = "Vacío: la sugerencia no está verificada contra un catálogo")
+                description = "Identificador de la canción en el catálogo; el título, el artista y el género son "
+                        + "los del catálogo. Vacío: la sugerencia no está verificada (origen RESPALDO)")
         @JsonProperty("idCatalogo") String catalogId,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED,
                 maxLength = RecommendationConstraints.TITLE_MAX_LENGTH)
