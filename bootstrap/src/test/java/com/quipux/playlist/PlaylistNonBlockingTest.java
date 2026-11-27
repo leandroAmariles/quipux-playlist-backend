@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.quipux.playlist.domain.model.enums.DemoUser;
 import com.quipux.playlist.infrastructure.in.rest.AuthController;
+import com.quipux.playlist.infrastructure.in.rest.health.HealthPath;
 import java.net.URI;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -53,6 +54,9 @@ class PlaylistNonBlockingTest extends SpotifyApiTestSupport {
         StepVerifier.create(theDefaultRecommendations("warm-up-recommendations"))
                 .expectNextCount(1)
                 .thenConsumeWhile(status -> true)
+                .verifyComplete();
+        StepVerifier.create(everyHealthProbe())
+                .expectNext(200, 200)
                 .verifyComplete();
         BlockHound.install();
     }
@@ -118,6 +122,20 @@ class PlaylistNonBlockingTest extends SpotifyApiTestSupport {
         StepVerifier.create(everyDocumentationRoute().collectList())
                 .assertNext(statuses -> assertThat(statuses).isNotEmpty().containsOnly(200, 302))
                 .verifyComplete();
+    }
+
+    @Test
+    void servesTheHealthProbesWithoutBlocking() {
+        StepVerifier.create(everyHealthProbe())
+                .expectNext(200, 200)
+                .verifyComplete();
+    }
+
+    private Flux<Integer> everyHealthProbe() {
+        return Flux.fromArray(HealthPath.publicPatterns())
+                .concatMap(path -> anonymousClient.get().uri(path)
+                        .exchangeToMono(response -> response.releaseBody()
+                                .thenReturn(response.statusCode().value())));
     }
 
     private Flux<Integer> everyDocumentationRoute() {
