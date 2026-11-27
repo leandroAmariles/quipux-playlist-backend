@@ -4,11 +4,18 @@ import com.quipux.playlist.application.port.in.CreatePlaylistPort;
 import com.quipux.playlist.application.port.in.DeletePlaylistPort;
 import com.quipux.playlist.application.port.in.GetPlaylistPort;
 import com.quipux.playlist.application.port.in.GetPlaylistsPort;
+import com.quipux.playlist.application.port.in.LoginPort;
+import com.quipux.playlist.application.port.in.RegisterDemoUsersPort;
+import com.quipux.playlist.application.port.out.PasswordHasherPort;
 import com.quipux.playlist.application.port.out.PlaylistRepositoryPort;
+import com.quipux.playlist.application.port.out.TokenIssuerPort;
+import com.quipux.playlist.application.port.out.UserRepositoryPort;
 import com.quipux.playlist.application.usecase.CreatePlaylistUseCase;
 import com.quipux.playlist.application.usecase.DeletePlaylistUseCase;
 import com.quipux.playlist.application.usecase.GetPlaylistUseCase;
 import com.quipux.playlist.application.usecase.GetPlaylistsUseCase;
+import com.quipux.playlist.application.usecase.LoginUseCase;
+import com.quipux.playlist.application.usecase.RegisterDemoUsersUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -33,5 +40,16 @@ public class UseCaseConfig {
     @Bean
     DeletePlaylistPort deletePlaylistPort(PlaylistRepositoryPort repository) {
         return new DeletePlaylistUseCase(repository);
+    }
+
+    @Bean
+    LoginPort loginPort(
+            UserRepositoryPort repository, PasswordHasherPort passwordHasher, TokenIssuerPort tokenIssuer) {
+        return new LoginUseCase(repository, passwordHasher, tokenIssuer);
+    }
+
+    @Bean
+    RegisterDemoUsersPort registerDemoUsersPort(UserRepositoryPort repository, PasswordHasherPort passwordHasher) {
+        return new RegisterDemoUsersUseCase(repository, passwordHasher);
     }
 }

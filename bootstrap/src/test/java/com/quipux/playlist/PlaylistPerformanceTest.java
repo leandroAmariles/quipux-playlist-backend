@@ -2,6 +2,8 @@ package com.quipux.playlist;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.quipux.playlist.domain.model.enums.DemoUser;
+import com.quipux.playlist.infrastructure.in.rest.AuthController;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
@@ -9,6 +11,7 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -28,7 +31,7 @@ class PlaylistPerformanceTest extends ApiTestSupport {
                 .verifyComplete();
 
         URI one = URI.create(baseUrl() + "/lists/perf-50");
-        WebClient largeResponses = WebClient.builder()
+        WebClient largeResponses = webClient.mutate()
                 .codecs(codecs -> codecs.defaultCodecs().maxInMemorySize(RESPONSE_BUFFER_BYTES))
                 .build();
         Mono<Integer> listing = largeResponses.get().uri(URI.create(baseUrl() + "/lists"))
@@ -39,6 +42,15 @@ class PlaylistPerformanceTest extends ApiTestSupport {
         assertFast(listing, 200);
         assertFast(status(HttpMethod.GET, one), 200);
         assertFast(status(HttpMethod.DELETE, one), 204);
+    }
+
+    @Test
+    void logsInInLessThanOneSecond() {
+        assertFast(anonymousClient.post().uri(AuthController.LOGIN_PATH)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Map.of("username", DemoUser.ADMIN.username(), "password", adminPassword))
+                .exchangeToMono(response -> response.releaseBody()
+                        .thenReturn(response.statusCode().value())), 200);
     }
 
     @AfterEach

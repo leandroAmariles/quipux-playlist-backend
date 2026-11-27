@@ -10,3 +10,11 @@ spring:
 
 server:
   port: 8080
+playlist:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:}
+      ttl: ${JWT_TTL:30m}
+    demo-users:
+      user-password: ${DEMO_USER_PASSWORD:}
+      admin-password: ${DEMO_ADMIN_PASSWORD:}

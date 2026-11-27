@@ -73,16 +73,16 @@ Basado en el ADR-0001. Se prioriza la calidad sobre el plazo: las horas (16 en t
 **Como** usuario, **quiero** autenticarme y operar según mi rol, **para** usar el sistema con los datos protegidos.
 
 **Inicio de sesión**
-- [ ] `POST /auth/login` con credenciales válidas devuelve un JWT con expiración.
-- [ ] Con credenciales inválidas devuelve `401`.
-- [ ] Las contraseñas se guardan con BCrypt.
-- [ ] Se crean usuarios de demostración con rol `USER` y `ADMIN`.
-- [ ] La clave de firma viene de una variable de entorno.
+- [x] `POST /auth/login` con credenciales válidas devuelve un JWT con expiración.
+- [x] Con credenciales inválidas devuelve `401`.
+- [x] Las contraseñas se guardan con BCrypt.
+- [x] Se crean usuarios de demostración con rol `USER` y `ADMIN`.
+- [x] La clave de firma viene de una variable de entorno.
 
 **Autorización por rol**
-- [ ] Sin token o con token inválido o vencido: `401`.
-- [ ] `USER` puede consultar, y recibe `403` al crear o borrar.
-- [ ] `ADMIN` puede consultar, crear y borrar.
+- [x] Sin token o con token inválido o vencido: `401`.
+- [x] `USER` puede consultar, y recibe `403` al crear o borrar.
+- [x] `ADMIN` puede consultar, crear y borrar.
 
 ### HU-04: Géneros
 **Como** usuario, **quiero** obtener los géneros disponibles, **para** clasificar canciones.

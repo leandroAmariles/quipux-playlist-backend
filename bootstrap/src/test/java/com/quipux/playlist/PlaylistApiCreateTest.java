@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Collections;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -47,6 +49,17 @@ class PlaylistApiCreateTest extends ApiTestSupport {
                 .expectNext(413)
                 .verifyComplete();
         StepVerifier.create(count("SELECT COUNT(*) FROM playlist WHERE name = 'too-large'"))
+                .expectNext(0L)
+                .verifyComplete();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"blocked%2F", "blocked%00", "blocked "})
+    void answers400ToANameThatThePathProtectionWouldBlock(String name) {
+        StepVerifier.create(create(playlist(name)))
+                .expectNext(400)
+                .verifyComplete();
+        StepVerifier.create(count("SELECT COUNT(*) FROM playlist WHERE name LIKE 'blocked%'"))
                 .expectNext(0L)
                 .verifyComplete();
     }

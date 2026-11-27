@@ -25,7 +25,7 @@ import reactor.core.publisher.Mono;
 @RequestMapping(PlaylistController.PATH)
 public class PlaylistController {
 
-    static final String PATH = "/lists";
+    public static final String PATH = "/lists";
     private static final String PATH_SEPARATOR = "/";
     private static final String ITEM_PATH = PATH_SEPARATOR + "{listName}";
 
