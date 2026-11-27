@@ -178,6 +178,15 @@ Cada entrada dice qué se pidió, qué devolvió la IA, qué se aceptó o correg
 - **Verificación:** `RecommendationEvaluationApplicationTest` y Checkstyle en verde en local. Qodana y `verify` los
   comprueba el CI de la PR.
 
+### P18 · 2026-11-27 · HU-14: integrar el arreglo del CI
+
+- **Prompt:** "ya esta el cambio en main"
+- **Respuesta:** el cuelgue de `verify` quedó resuelto en `main` con la PR #30, que reinicia los schedulers antes de
+  instalar BlockHound. El asistente había llegado al mismo arreglo en un commit local, que no se subió. Se integró
+  `main` en la rama de HU-14.
+- **Verificación:** en Linux, antes del arreglo, `PlaylistNonBlockingTest` se colgaba 3 de 3 y con él pasaba 3 de 3.
+  Con `main` integrado, `mvn clean verify` en verde en local (813 pruebas, 1 omitida). El CI de la PR lo confirma aparte.
+
 ## 2. Prompt de generación del cliente
 
 Redactado el 2026-11-27 (T028) a partir del puerto, el contrato y los requisitos de `spec.md`, sin las conclusiones de la investigación ni del plan.
