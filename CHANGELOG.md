@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.1](https://github.com/leandroAmariles/quipux-playlist-backend/compare/v0.2.0...v0.2.1) (2026-11-27)
+
+
+### Bug Fixes
+
+* **HU-09:** open infra tag PR automatically after backend image publish ([e0ce847](https://github.com/leandroAmariles/quipux-playlist-backend/commit/e0ce847267640eb57e99b5ee51805ef05adfbc63))
+* **HU-09:** open infra tag PR automatically after backend image publish ([dd8da0b](https://github.com/leandroAmariles/quipux-playlist-backend/commit/dd8da0b2c44b7705d9f834bfd5e2c23d5dc53888))
+
+
+### Documentation
+
+* **HU-09:** document health probes, update-infra and close HU-09 backlog ([764faf9](https://github.com/leandroAmariles/quipux-playlist-backend/commit/764faf9d07a116a5088b9ded9ede5746aee8eeaa))
+* **HU-09:** document health probes, update-infra and close HU-09 backlog ([2fcadd1](https://github.com/leandroAmariles/quipux-playlist-backend/commit/2fcadd1ca684f67a287446f6400912d36b074e85))
+
 ## [0.2.0](https://github.com/leandroAmariles/quipux-playlist-backend/compare/v0.1.1...v0.2.0) (2026-11-27)
 
 
