@@ -2,7 +2,7 @@
 
 API REST reactiva para gestionar listas de reproducción de música.
 
-**En construcción:** están las operaciones sobre listas y la autenticación. Faltan los géneros y la aplicación web.
+**En construcción:** están las operaciones sobre listas, la autenticación y los géneros. Falta la aplicación web.
 
 ## API
 
@@ -11,6 +11,7 @@ API REST reactiva para gestionar listas de reproducción de música.
 | `POST /auth/login` | cualquiera | `200` con el token; `400`, `401`, `415` |
 | `GET /lists` | `USER`, `ADMIN` | `200` |
 | `GET /lists/{listName}` | `USER`, `ADMIN` | `200`; `404` |
+| `GET /genres` | `USER`, `ADMIN` | `200` |
 | `POST /lists` | `ADMIN` | `201` con `Location`; `400`, `409`, `413`, `415` |
 | `DELETE /lists/{listName}` | `ADMIN` | `204`; `404` |
 
@@ -31,10 +32,18 @@ curl -i http://localhost:8080/lists/Mis%20favoritas -H "Authorization: Bearer $T
 Los nombres de lista no admiten `/`, `\`, caracteres de control, `.` ni `..`, ni contener `%2F`, `%5C`, `%00`, `%0A`,
 `%0D` (en mayúsculas o minúsculas) o los separadores Unicode U+2028 y U+2029.
 
-Detalle en los contratos de [autenticación](specs/03-authentication-authorization/contracts/rest-api.md) y de
-[listas](specs/02-playlist-management/contracts/rest-api.md), y casos de prueba en los `requests.http` de
-[autenticación](specs/03-authentication-authorization/requests.http) y
-[listas](specs/02-playlist-management/requests.http).
+`GET /genres` devuelve `generos` y su `origen` (`SPOTIFY` o `LOCAL`). Si Spotify falla, tarda más de 3 segundos o no
+hay credenciales, responde con una lista local. Al crear una lista, cada `genero` debe estar en ese catálogo, sin
+distinguir mayúsculas.
+
+**Limitación de Spotify:** a la aplicación registrada para este proyecto, Spotify real no le entrega géneros (`404`),
+así que el origen es `LOCAL`. El origen `SPOTIFY` se obtiene apuntando a un servicio simulado
+([guía](specs/04-genres/quickstart.md)).
+
+Detalle en los contratos de [géneros](specs/04-genres/contracts/rest-api.md), de [autenticación](specs/03-authentication-authorization/contracts/rest-api.md) y
+de [listas](specs/02-playlist-management/contracts/rest-api.md), y casos de prueba en los `requests.http` de
+[autenticación](specs/03-authentication-authorization/requests.http),
+[listas](specs/02-playlist-management/requests.http) y [géneros](specs/04-genres/requests.http).
 
 **Sobre el modelo no bloqueante:** la API es reactiva de extremo a extremo, pero el controlador `r2dbc-h2` ejecuta
 las consultas en el mismo hilo que las pide. Con la base en memoria son operaciones cortas. BCrypt, que es lento a
@@ -72,13 +81,16 @@ repositorio.
 | `DEMO_USER_PASSWORD` | contraseña del usuario `user`, de 1 a 72 bytes |
 | `DEMO_ADMIN_PASSWORD` | contraseña del usuario `admin`, de 1 a 72 bytes |
 | `JWT_TTL` | opcional: vigencia del token (por defecto `30m`) |
+| `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | opcionales: sin las dos se usa la lista local |
+| `SPOTIFY_ACCOUNTS_BASE_URL`, `SPOTIFY_API_BASE_URL` | opcionales: para apuntar a un servicio simulado |
+| `SPOTIFY_TIMEOUT` | opcional: tiempo máximo para obtener los géneros (por defecto `3s`) |
 
 ## Comandos
 
 En Windows se usa `mvnw.cmd` en lugar de `./mvnw`.
 
 ```bash
-# Compila, prueba y aplica los controles de calidad. No necesita variables de entorno
+# Compila, prueba y aplica los controles de calidad. No necesita variables de entorno ni conexión con Spotify
 ./mvnw verify
 
 # Empaqueta y arranca en el puerto 8080

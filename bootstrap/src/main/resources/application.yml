@@ -18,3 +18,11 @@ playlist:
     demo-users:
       user-password: ${DEMO_USER_PASSWORD:}
       admin-password: ${DEMO_ADMIN_PASSWORD:}
+  spotify:
+    accounts-base-url: ${SPOTIFY_ACCOUNTS_BASE_URL:https://accounts.spotify.com}
+    api-base-url: ${SPOTIFY_API_BASE_URL:https://api.spotify.com}
+    client-id: ${SPOTIFY_CLIENT_ID:}
+    client-secret: ${SPOTIFY_CLIENT_SECRET:}
+    timeout: ${SPOTIFY_TIMEOUT:3s}
+  genres:
+    local-file: classpath:local-genres.properties

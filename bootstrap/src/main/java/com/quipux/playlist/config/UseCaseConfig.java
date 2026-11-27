@@ -2,20 +2,24 @@ package com.quipux.playlist.config;
 
 import com.quipux.playlist.application.port.in.CreatePlaylistPort;
 import com.quipux.playlist.application.port.in.DeletePlaylistPort;
+import com.quipux.playlist.application.port.in.GetGenresPort;
 import com.quipux.playlist.application.port.in.GetPlaylistPort;
 import com.quipux.playlist.application.port.in.GetPlaylistsPort;
 import com.quipux.playlist.application.port.in.LoginPort;
 import com.quipux.playlist.application.port.in.RegisterDemoUsersPort;
+import com.quipux.playlist.application.port.out.GenreProviderPort;
 import com.quipux.playlist.application.port.out.PasswordHasherPort;
 import com.quipux.playlist.application.port.out.PlaylistRepositoryPort;
 import com.quipux.playlist.application.port.out.TokenIssuerPort;
 import com.quipux.playlist.application.port.out.UserRepositoryPort;
 import com.quipux.playlist.application.usecase.CreatePlaylistUseCase;
 import com.quipux.playlist.application.usecase.DeletePlaylistUseCase;
+import com.quipux.playlist.application.usecase.GetGenresUseCase;
 import com.quipux.playlist.application.usecase.GetPlaylistUseCase;
 import com.quipux.playlist.application.usecase.GetPlaylistsUseCase;
 import com.quipux.playlist.application.usecase.LoginUseCase;
 import com.quipux.playlist.application.usecase.RegisterDemoUsersUseCase;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,8 +27,8 @@ import org.springframework.context.annotation.Configuration;
 public class UseCaseConfig {
 
     @Bean
-    CreatePlaylistPort createPlaylistPort(PlaylistRepositoryPort repository) {
-        return new CreatePlaylistUseCase(repository);
+    CreatePlaylistPort createPlaylistPort(PlaylistRepositoryPort repository, GetGenresPort getGenres) {
+        return new CreatePlaylistUseCase(repository, getGenres);
     }
 
     @Bean
@@ -51,5 +55,12 @@ public class UseCaseConfig {
     @Bean
     RegisterDemoUsersPort registerDemoUsersPort(UserRepositoryPort repository, PasswordHasherPort passwordHasher) {
         return new RegisterDemoUsersUseCase(repository, passwordHasher);
+    }
+
+    @Bean
+    GetGenresPort getGenresPort(
+            @Qualifier("spotifyGenreProvider") GenreProviderPort spotify,
+            @Qualifier("localGenreProvider") GenreProviderPort local) {
+        return new GetGenresUseCase(spotify, local);
     }
 }

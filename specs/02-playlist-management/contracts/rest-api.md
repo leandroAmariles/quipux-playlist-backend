@@ -5,6 +5,9 @@ Base: `http://localhost:8080`.
 **Desde HU-03** todas estas operaciones exigen token y rol, y `POST /lists` rechaza además algunos nombres: ver el
 [contrato de autenticación](../../03-authentication-authorization/contracts/rest-api.md).
 
+**Desde HU-04**, `POST /lists` rechaza con `400` los géneros fuera del catálogo: ver el
+[contrato de géneros](../../04-genres/contracts/rest-api.md).
+
 ## Representación
 
 ```json

@@ -205,6 +205,13 @@ Según la [guía de migración de febrero 2026](https://developer.spotify.com/do
 - La API expone `GET /genres`, indica el origen de los datos y el README explica la limitación.
 - Credenciales solo por variables de entorno. Nunca en el repositorio.
 - Hay una app de Spotify con cuenta Premium. Si la integración real se complica, se usa **WireMock** para simular las respuestas de Spotify. Las URL base de Spotify son configurables para poder apuntar a uno u otro.
+- **Verificación (2026-11-26, HU-04):** con las credenciales reales se obtiene el token con *client credentials*, pero
+  `GET /v1/recommendations/available-genre-seeds` responde `404` y `GET /v1/browse/categories`, `403`. Con el mismo
+  token, `GET /v1/search` responde `200`.
+- **Decisión (2026-11-26, HU-04):** la integración sigue el formato documentado de `available-genre-seeds` y se simula
+  con WireMock. Contra el Spotify real, `GET /genres` responde con la lista local.
+- **Concreción (2026-11-26, HU-04):** al crear una lista se rechaza con `400` el género que no esté en el catálogo
+  vigente (Spotify o lista local), sin distinguir mayúsculas.
 
 ### 11. Pruebas
 
@@ -289,7 +296,7 @@ Las fases 1 a 5 cubren el enunciado y se terminan primero. Nunca se entrega una 
 - [x] Tres repositorios públicos creados con los nombres de la sección 3
 - [ ] Revisar los detalles propuestos en las secciones 7, 12 y 13
 - [ ] Crear los tokens para release-please y para los PR al repositorio de infra
-- [ ] Definir `SPOTIFY_CLIENT_ID` y `SPOTIFY_CLIENT_SECRET` y probar los endpoints
+- [x] Definir `SPOTIFY_CLIENT_ID` y `SPOTIFY_CLIENT_SECRET` y probar los endpoints
 
 ## Instrucciones para continuar con Claude Code
 

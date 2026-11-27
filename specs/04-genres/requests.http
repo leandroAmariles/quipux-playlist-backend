@@ -1,0 +1,214 @@
+# HU-04: casos de prueba de la especificacion (spec.md). Ejecutar de arriba abajo con la aplicacion recien arrancada,
+# contra el Spotify real o sin credenciales: en ambos casos el catalogo es la lista local (origen LOCAL).
+#
+# Not covered here (se comprueban en las pruebas automaticas):
+#   US1, FR-001, FR-002  verificacion de Spotify: ADR-0001, seccion 10
+#   US2 origen SPOTIFY, FR-004  requiere el servicio simulado: GenresApiTest
+#   US3-1 a US3-4, US3-6, FR-006, FR-008  fallos y recuperacion: SpotifyGenreProviderAdapterTest, GenresApiTest
+#   FR-007, SC-002  tiempo maximo: GenresApiTest, PlaylistGenreValidationApiTest
+#   FR-009, SC-004  registro sin secretos: GenresApiTest
+#   FR-010, Edge Lista local vacia: LocalGenreProviderAdapterTest, StartupConfigurationTest
+#   FR-012, FR-013, Edge Credenciales incompletas: SpotifyGenreProviderAdapterTest
+#   FR-014  WireMock en las pruebas; FR-015  PlaylistNonBlockingTest
+#   FR-021  una sola consulta al catalogo: PlaylistGenreValidationApiTest
+#   Edge Entradas no validas y campos adicionales de Spotify: GenreCatalogTest, SpotifyGenreProviderAdapterTest
+#   Edge Cambio de origen entre consultar y crear, token de Spotify: GenresApiTest, PlaylistGenreValidationApiTest
+
+@baseUrl = http://localhost:8080
+# Los valores de DEMO_USER_PASSWORD y DEMO_ADMIN_PASSWORD. No guardarlos en el repositorio.
+@userPassword = <contrasena-user>
+@adminPassword = <contrasena-admin>
+
+### Preparacion: token de user — expects 200
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "user", "password": "{{userPassword}}"}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.global.set("userToken", response.body.accessToken);
+%}
+
+### Preparacion: token de admin — expects 200
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": "{{adminPassword}}"}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.global.set("adminToken", response.body.accessToken);
+%}
+
+### US2-1, US3-5 / FR-003, FR-005, FR-006: user consulta los generos — expects 200 LOCAL
+GET {{baseUrl}}/genres
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.test("local catalog", () => client.assert(response.body.origen === "LOCAL" && response.body.generos.length > 0));
+%}
+
+### US2-2 / FR-005: admin recibe la misma respuesta — expects 200
+GET {{baseUrl}}/genres
+Authorization: Bearer {{adminToken}}
+
+> {% client.test("status 200", () => client.assert(response.status === 200)); %}
+
+### US2-3 / FR-005: sin token — expects 401
+GET {{baseUrl}}/genres
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### US2-3 / FR-005: token invalido — expects 401
+GET {{baseUrl}}/genres
+Authorization: Bearer abc
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### US4-1 / FR-017, FR-018: genero del catalogo — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu04-conocido", "canciones": [{"titulo": "Uno", "genero": "rock"}]}
+
+> {% client.test("status 201", () => client.assert(response.status === 201)); %}
+
+### US4-2 / FR-019: otras mayusculas, se guarda como se envio — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu04-mayusculas", "canciones": [{"genero": "Rock"}]}
+
+> {%
+client.test("status 201", () => client.assert(response.status === 201));
+client.test("kept as sent", () => client.assert(response.body.canciones[0].genero === "Rock"));
+%}
+
+### US4-3 / FR-017: un genero fuera del catalogo entre dos canciones — expects 400 PLAYLIST_GE_00001
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu04-desconocido", "canciones": [{"genero": "rock"}, {"genero": "no-existe"}]}
+
+> {%
+client.test("status 400", () => client.assert(response.status === 400));
+client.test("genre problem", () => client.assert(response.body.detail === "A song genre is not in the genre catalog"));
+%}
+
+### US4-3 / FR-017: no se guardo nada — expects 404 PLAYLIST_GE_00002
+GET {{baseUrl}}/lists/hu04-desconocido
+Authorization: Bearer {{adminToken}}
+
+> {% client.test("status 404", () => client.assert(response.status === 404)); %}
+
+### US4-4 / FR-018: genero de la lista local — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu04-local", "canciones": [{"genero": "vallenato"}]}
+
+> {% client.test("status 201", () => client.assert(response.status === 201)); %}
+
+### US4-5 / FR-018: genero que no esta en la lista local — expects 400 PLAYLIST_GE_00001
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu04-fuera-local", "canciones": [{"genero": "k-folk"}]}
+
+> {% client.test("status 400", () => client.assert(response.status === 400)); %}
+
+### US4-6 / FR-020: genero ausente, nulo, vacio o con espacios — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu04-sin-genero", "canciones": [{"titulo": "A"}, {"genero": null}, {"genero": ""}, {"genero": "   "}]}
+
+> {% client.test("status 201", () => client.assert(response.status === 201)); %}
+
+### US4-7 / FR-021: sin token — expects 401, no 400
+POST {{baseUrl}}/lists
+Content-Type: application/json
+
+{"nombre": "hu04-sin-token", "canciones": [{"genero": "no-existe"}]}
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### US4-7 / FR-021: rol USER — expects 403, no 400
+POST {{baseUrl}}/lists
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{"nombre": "hu04-rol", "canciones": [{"genero": "no-existe"}]}
+
+> {% client.test("status 403", () => client.assert(response.status === 403)); %}
+
+### Edge Nombre repetido y genero no valido — expects 400, no 409
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu04-conocido", "canciones": [{"genero": "no-existe"}]}
+
+> {% client.test("status 400", () => client.assert(response.status === 400)); %}
+
+### Edge Nombre repetido con genero valido — expects 409 PLAYLIST_GE_00003
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu04-conocido", "canciones": [{"genero": "rock"}]}
+
+> {% client.test("status 409", () => client.assert(response.status === 409)); %}
+
+### Edge Espacios alrededor del genero / FR-019 — expects 400 PLAYLIST_GE_00001
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu04-espacios", "canciones": [{"genero": " rock "}]}
+
+> {% client.test("status 400", () => client.assert(response.status === 400)); %}
+
+### Edge Peticion rechazada por otra regla: genero de 101 caracteres — expects 400 PLAYLIST_GE_00001 (longitud)
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu04-largo", "canciones": [{"genero": "ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"}]}
+
+> {%
+client.test("status 400", () => client.assert(response.status === 400));
+client.test("length problem", () => client.assert(response.body.detail.includes("100 characters")));
+%}
+
+### Edge Listas anteriores / FR-016, FR-022: consultar — expects 200
+GET {{baseUrl}}/lists/hu04-conocido
+Authorization: Bearer {{userToken}}
+
+> {% client.test("status 200", () => client.assert(response.status === 200)); %}
+
+### Edge Listas anteriores / FR-016, FR-022: borrar — expects 204
+DELETE {{baseUrl}}/lists/hu04-conocido
+Authorization: Bearer {{adminToken}}
+
+> {% client.test("status 204", () => client.assert(response.status === 204)); %}
+
+### Limpieza — expects 204
+DELETE {{baseUrl}}/lists/hu04-mayusculas
+Authorization: Bearer {{adminToken}}
+
+### Limpieza — expects 204
+DELETE {{baseUrl}}/lists/hu04-local
+Authorization: Bearer {{adminToken}}
+
+### Limpieza — expects 204
+DELETE {{baseUrl}}/lists/hu04-sin-genero
+Authorization: Bearer {{adminToken}}

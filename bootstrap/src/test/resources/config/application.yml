@@ -6,3 +6,6 @@ playlist:
     demo-users:
       user-password: fake-user-password
       admin-password: fake-admin-password
+  spotify:
+    client-id: ""
+    client-secret: ""

@@ -18,7 +18,7 @@ import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class PlaylistNonBlockingTest extends ApiTestSupport {
+class PlaylistNonBlockingTest extends SpotifyApiTestSupport {
 
     private WebClient userClient;
 
@@ -31,6 +31,16 @@ class PlaylistNonBlockingTest extends ApiTestSupport {
                 .assertNext(token -> userClient = clientWith(token))
                 .verifyComplete();
         StepVerifier.create(everyOperation("warm-up").concatWith(everySecurityOutcome()))
+                .expectNextCount(1)
+                .thenConsumeWhile(status -> true)
+                .verifyComplete();
+        spotifyOffers("[\"rock\"]");
+        StepVerifier.create(everyGenreOutcome("warm-up-spotify"))
+                .expectNextCount(1)
+                .thenConsumeWhile(status -> true)
+                .verifyComplete();
+        spotifyFails(503);
+        StepVerifier.create(everyGenreOutcome("warm-up-local"))
                 .expectNextCount(1)
                 .thenConsumeWhile(status -> true)
                 .verifyComplete();
@@ -59,6 +69,31 @@ class PlaylistNonBlockingTest extends ApiTestSupport {
         StepVerifier.create(everySecurityOutcome())
                 .expectNext(200, 401, 401, 401, 403)
                 .verifyComplete();
+    }
+
+    @Test
+    void servesTheGenresFromSpotifyWithoutBlocking() {
+        spotifyOffers("[\"rock\"]");
+
+        StepVerifier.create(everyGenreOutcome("genres-spotify"))
+                .expectNext(200, 201, 400)
+                .verifyComplete();
+    }
+
+    @Test
+    void fallsBackToTheLocalGenresWithoutBlocking() {
+        spotifyFails(503);
+
+        StepVerifier.create(everyGenreOutcome("genres-local"))
+                .expectNext(200, 201, 400)
+                .verifyComplete();
+    }
+
+    private Flux<Integer> everyGenreOutcome(String name) {
+        return Flux.concat(
+                status(HttpMethod.GET, URI.create(baseUrl() + "/genres")),
+                create(playlist(name, Map.of("genero", "rock"))),
+                create(playlist(name + "-unknown", Map.of("genero", "no-existe"))));
     }
 
     private Flux<Integer> everySecurityOutcome() {

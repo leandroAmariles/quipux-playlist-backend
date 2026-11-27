@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -31,6 +32,17 @@ class StartupConfigurationTest {
         if (value.length() > 10) {
             assertThat(output).doesNotContain(value);
         }
+    }
+
+    @Test
+    void refusesToStartWithoutLocalGenres() {
+        String[] arguments = {
+                "--server.port=0",
+                "--spring.r2dbc.url=r2dbc:h2:mem:///startup-genres-test?options=DB_CLOSE_DELAY=-1",
+                "--playlist.genres.local-file=classpath:empty-genres.properties"};
+
+        assertThatThrownBy(() -> SpringApplication.run(PlaylistApplication.class, arguments).close())
+                .hasStackTraceContaining("GENRE_ERROR_002");
     }
 
     private static Stream<Arguments> invalidSettings() {

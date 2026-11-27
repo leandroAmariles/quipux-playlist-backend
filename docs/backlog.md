@@ -88,17 +88,18 @@ Basado en el ADR-0001. Se prioriza la calidad sobre el plazo: las horas (16 en t
 **Como** usuario, **quiero** obtener los géneros disponibles, **para** clasificar canciones.
 
 **Verificación de Spotify (primer paso)**
-- [ ] Se obtiene un token con client credentials.
-- [ ] Se prueban `/recommendations/available-genre-seeds` y `/browse/categories`.
-- [ ] El resultado queda anotado en el ADR.
-- [ ] Si la integración real se complica, se simula Spotify con WireMock.
-- [ ] Las credenciales solo están en variables de entorno.
+- [x] Se obtiene un token con client credentials.
+- [x] Se prueban `/recommendations/available-genre-seeds` y `/browse/categories`.
+- [x] El resultado queda anotado en el ADR.
+- [x] Si la integración real se complica, se simula Spotify con WireMock.
+- [x] Las credenciales solo están en variables de entorno.
 
 **Consulta de géneros**
-- [ ] `GET /genres` devuelve los géneros y su origen (Spotify o lista local).
-- [ ] Si Spotify falla, responde con la lista local.
-- [ ] La prueba usa WireMock, sin llamar a Spotify.
-- [ ] Las URL base de Spotify son configurables.
+- [x] `GET /genres` devuelve los géneros y su origen (Spotify o lista local).
+- [x] Si Spotify falla, responde con la lista local.
+- [x] La prueba usa WireMock, sin llamar a Spotify.
+- [x] Las URL base de Spotify son configurables.
+- [x] Al crear una lista, un género que no está en el catálogo devuelve `400`.
 
 ## Épica 3: Aplicación web
 

@@ -33,9 +33,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 ResponseCodeEnum.UNEXPECTED_ERROR, ErrorMessageEnum.UNEXPECTED_ERROR.format());
     }
 
-    /**
-     * Errors detected by the framework. Only the bad requests carry a code of this API.
-     */
     @Override
     protected Mono<ResponseEntity<Object>> handleExceptionInternal(
             Exception exception, Object body, HttpHeaders headers, HttpStatusCode status, ServerWebExchange exchange) {

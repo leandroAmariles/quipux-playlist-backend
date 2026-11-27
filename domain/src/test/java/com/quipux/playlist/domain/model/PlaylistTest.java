@@ -102,6 +102,18 @@ class PlaylistTest {
         assertThatThrownBy(() -> playlist.songs().add(SONG)).isInstanceOf(UnsupportedOperationException.class);
     }
 
+    @Test
+    void declaresOnlyTheGenresThatHaveText() {
+        Playlist playlist = new Playlist("Rock", null, List.of(
+                genre("rock"), genre(null), genre(""), genre("   "), genre("Salsa"), genre("rock")));
+
+        assertThat(playlist.declaredGenres()).containsExactly("rock", "Salsa", "rock");
+    }
+
+    private static Song genre(String genre) {
+        return new Song(null, null, null, null, genre);
+    }
+
     private static Playlist playlist(String name) {
         return new Playlist(name, "description", List.of());
     }
