@@ -180,6 +180,9 @@ springdoc-openapi para WebFlux, con el esquema Bearer JWT declarado.
 - El Secret real se crea a mano en el clúster. El de ejemplo no se incluye en `kustomization.yaml`, para que Argo CD no sobrescriba el real.
 - El backend va con **una réplica**, porque H2 en memoria no se comparte entre pods. Los datos se pierden al reiniciar.
 - Terraform queda fuera.
+- **Concreción (2026-11-27, HU-07):** la composición lleva backend, frontend y WireMock; Redis y Kafka se añaden con
+  HU-10 y HU-11, cuando la aplicación los use. WireMock se activa con un segundo archivo, `compose.wiremock.yaml`. Los
+  puertos se publican solo en la máquina local. nginx reenvía `/api` con la ruta tal como llega, sin recodificarla.
 
 ### 8. Contrato y modelo de datos
 

@@ -26,6 +26,14 @@ bloqueante desde la petición hasta el controlador de la base de datos.
 
 Detalle en el [ADR-0001](docs/adr/0001-arquitectura-api-listas-reproduccion.md), sección 1.
 
+## Con Docker
+
+Para levantar la API y la aplicación web con un solo comando, sin instalar Java, Maven ni Node, sigue el
+[README de quipux-playlist-infra](https://github.com/leandroAmariles/quipux-playlist-infra#readme). El
+[`Dockerfile`](Dockerfile) de este repositorio construye la imagen de la API.
+
+El resto de este documento explica cómo hacerlo sin Docker.
+
 ## Requisitos
 
 - Java 21
@@ -223,7 +231,7 @@ Las pruebas automáticas ya cubren este caso sin pasos manuales.
 |---|---|
 | [quipux-playlist-backend](https://github.com/leandroAmariles/quipux-playlist-backend) (este) | API y documentación |
 | [quipux-playlist-frontend](https://github.com/leandroAmariles/quipux-playlist-frontend) | Aplicación web Angular |
-| [quipux-playlist-infra](https://github.com/leandroAmariles/quipux-playlist-infra) | Despliegue: aún pendiente |
+| [quipux-playlist-infra](https://github.com/leandroAmariles/quipux-playlist-infra) | Docker Compose; Kubernetes y Argo CD, aún pendientes |
 
 ## Decisiones y especificaciones
 
