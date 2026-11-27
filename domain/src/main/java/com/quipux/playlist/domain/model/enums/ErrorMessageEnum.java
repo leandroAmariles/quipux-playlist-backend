@@ -99,7 +99,21 @@ public enum ErrorMessageEnum {
             "The song catalog has no candidates for the playlist"),
     RECOMMENDATION_SIMILARITY(ResponseCodeEnum.RECOMMENDATION_PROVIDER_UNAVAILABLE,
             "Using the most similar songs: %s"),
-    UNEXPECTED_ERROR(ResponseCodeEnum.UNEXPECTED_ERROR,"An unexpected error occurred");
+    UNEXPECTED_ERROR(ResponseCodeEnum.UNEXPECTED_ERROR,"An unexpected error occurred"),
+    EVENT_PUBLISH_UNAVAILABLE(ResponseCodeEnum.EVENT_BROKER_UNAVAILABLE,
+            "Kafka broker unavailable while publishing %s for playlist '%s'"),
+    EVENT_PUBLISH_TIMEOUT(ResponseCodeEnum.EVENT_BROKER_UNAVAILABLE,
+            "Kafka publish timed out for %s of playlist '%s'"),
+    EVENT_SERIALIZATION_FAILED(ResponseCodeEnum.EVENT_BROKER_UNAVAILABLE,
+            "Could not serialize %s event"),
+    EVENT_PUBLISH_IGNORED(ResponseCodeEnum.EVENT_BROKER_UNAVAILABLE,
+            "Ignoring playlist event publish failure: %s"),
+    EVENT_MESSAGE_UNREADABLE(ResponseCodeEnum.EVENT_BROKER_UNAVAILABLE,
+            "Ignoring unreadable playlist audit message: %s"),
+    INVALID_EVENT_DURATION(ResponseCodeEnum.INVALID_EVENT_CONFIGURATION,
+            "The playlist events %s must be greater than zero"),
+    INVALID_EVENT_SETTING(ResponseCodeEnum.INVALID_EVENT_CONFIGURATION,
+            "The playlist events %s must not be blank");
 
     private final ResponseCodeEnum responseCode;
     private final String template;

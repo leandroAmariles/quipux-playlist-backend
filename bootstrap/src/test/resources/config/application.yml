@@ -22,3 +22,5 @@ playlist:
   genres:
     cache:
       enabled: false
+  events:
+    enabled: false

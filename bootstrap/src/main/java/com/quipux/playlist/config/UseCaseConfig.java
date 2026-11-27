@@ -12,6 +12,7 @@ import com.quipux.playlist.application.port.out.DefaultRecommendationsPort;
 import com.quipux.playlist.application.port.out.GenreCachePort;
 import com.quipux.playlist.application.port.out.GenreProviderPort;
 import com.quipux.playlist.application.port.out.PasswordHasherPort;
+import com.quipux.playlist.application.port.out.PlaylistEventPublisherPort;
 import com.quipux.playlist.application.port.out.PlaylistRepositoryPort;
 import com.quipux.playlist.application.port.out.RecommendationCachePort;
 import com.quipux.playlist.application.port.out.RecommendationProviderPort;
@@ -38,8 +39,11 @@ import org.springframework.context.annotation.Configuration;
 public class UseCaseConfig {
 
     @Bean
-    CreatePlaylistPort createPlaylistPort(PlaylistRepositoryPort repository, GetGenresPort getGenres) {
-        return new CreatePlaylistUseCase(repository, getGenres);
+    CreatePlaylistPort createPlaylistPort(
+            PlaylistRepositoryPort repository,
+            GetGenresPort getGenres,
+            PlaylistEventPublisherPort eventPublisher) {
+        return new CreatePlaylistUseCase(repository, getGenres, eventPublisher);
     }
 
     @Bean
@@ -53,8 +57,10 @@ public class UseCaseConfig {
     }
 
     @Bean
-    DeletePlaylistPort deletePlaylistPort(PlaylistRepositoryPort repository) {
-        return new DeletePlaylistUseCase(repository);
+    DeletePlaylistPort deletePlaylistPort(
+            PlaylistRepositoryPort repository,
+            PlaylistEventPublisherPort eventPublisher) {
+        return new DeletePlaylistUseCase(repository, eventPublisher);
     }
 
     @Bean

@@ -71,6 +71,11 @@
             <artifactId>testcontainers-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-kafka</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -91,6 +96,7 @@
                                 <exclude>**/RecommendationNonBlockingTest.java</exclude>
                                 <exclude>**/RecommendationsCatalogApiTest.java</exclude>
                                 <exclude>**/GenreCacheNonBlockingTest.java</exclude>
+                                <exclude>**/PlaylistEventsNonBlockingTest.java</exclude>
                             </excludes>
                         </configuration>
                     </execution>
@@ -139,6 +145,18 @@
                         <configuration>
                             <includes>
                                 <include>**/GenreCacheNonBlockingTest.java</include>
+                            </includes>
+                            <argLine>@{argLine} -XX:+AllowRedefinitionToAddDeleteMethods -XX:+EnableDynamicAgentLoading</argLine>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>non-blocking-playlist-events-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/PlaylistEventsNonBlockingTest.java</include>
                             </includes>
                             <argLine>@{argLine} -XX:+AllowRedefinitionToAddDeleteMethods -XX:+EnableDynamicAgentLoading</argLine>
                         </configuration>

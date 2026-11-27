@@ -221,10 +221,10 @@ Basado en el ADR-0001. Se prioriza la calidad sobre el plazo: las horas (16 en t
 ### HU-11: Eventos en Kafka
 **Como** auditor, **quiero** un evento por cada creación y borrado, **para** tener trazabilidad.
 
-- [ ] Se publican `PlaylistCreated` y `PlaylistDeleted` después del commit.
-- [ ] Un consumidor los registra en el log.
-- [ ] Con Kafka caído, la petición no falla.
-- [ ] Las pruebas con Testcontainers cubren la publicación, el consumo y Kafka caído.
+- [x] Se publican `PlaylistCreated` y `PlaylistDeleted` después del commit.
+- [x] Un consumidor los registra en el log.
+- [x] Con Kafka caído, la petición no falla.
+- [x] Las pruebas con Testcontainers cubren la publicación, el consumo y Kafka caído.
 
 ## Orden de entrega
 

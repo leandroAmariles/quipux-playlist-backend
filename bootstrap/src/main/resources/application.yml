@@ -14,6 +14,13 @@ spring:
       password: ${REDIS_PASSWORD:}
       timeout: ${REDIS_TIMEOUT:1s}
       connect-timeout: ${REDIS_CONNECT_TIMEOUT:1s}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    admin:
+      auto-create: false
+    listener:
+      missing-topics-fatal: false
+      auto-startup: ${playlist.events.enabled:true}
   ai:
     # Every model type of the starter is off by default: any of them left on requires an API key to start.
     model:
@@ -73,6 +80,11 @@ playlist:
       key: ${GENRES_CACHE_KEY:playlist:genres:spotify}
       ttl: ${GENRES_CACHE_TTL:24h}
       timeout: ${GENRES_CACHE_TIMEOUT:1s}
+  events:
+    enabled: ${PLAYLIST_EVENTS_ENABLED:true}
+    topic: ${PLAYLIST_EVENTS_TOPIC:playlist.events}
+    consumer-group: ${PLAYLIST_EVENTS_CONSUMER_GROUP:playlist-audit}
+    publish-timeout: ${PLAYLIST_EVENTS_PUBLISH_TIMEOUT:2s}
   ai:
     default-recommendations-file: classpath:default-recommendations.properties
     timeout: ${AI_TIMEOUT:30s}
