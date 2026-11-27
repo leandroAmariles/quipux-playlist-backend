@@ -1,7 +1,9 @@
 package com.quipux.playlist;
 
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.quipux.playlist.domain.model.enums.DemoUser;
 import com.quipux.playlist.domain.model.enums.ResponseCodeEnum;
 import com.quipux.playlist.infrastructure.security.TokenClaim;
@@ -10,6 +12,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -19,6 +22,8 @@ import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -28,8 +33,31 @@ import reactor.test.StepVerifier;
  */
 class RecommendationsApiTest extends ApiTestSupport {
 
+    private static final WireMockServer LITELLM = startGateway();
+
     @Autowired
     private JwtEncoder encoder;
+
+    @DynamicPropertySource
+    static void pointToTheSimulatedGateway(DynamicPropertyRegistry registry) {
+        registry.add("AI_BASE_URL", () -> LITELLM.baseUrl() + "/v1");
+        registry.add("spring.r2dbc.url", () -> "r2dbc:h2:mem:///ai-disabled-test?options=DB_CLOSE_DELAY=-1");
+    }
+
+    @AfterAll
+    static void stopTheGateway() {
+        LITELLM.stop();
+    }
+
+    @Test
+    void asksTheGatewayForNeitherEmbeddingsNorChat() {
+        StepVerifier.create(create(playlist("rec-silent", Map.of("titulo", "Uno")))
+                        .then(recommendations(webClient, "/lists/rec-silent/recommendations")))
+                .assertNext(body -> assertThat(body).containsEntry("origen", "RESPALDO"))
+                .verifyComplete();
+
+        assertThat(LITELLM.getAllServeEvents()).isEmpty();
+    }
 
     @Test
     void answersBothRolesWithTheDefaultList() {
@@ -137,6 +165,12 @@ class RecommendationsApiTest extends ApiTestSupport {
                 .expectNext(200)
                 .expectComplete()
                 .verify(Duration.ofSeconds(1));
+    }
+
+    private static WireMockServer startGateway() {
+        WireMockServer server = new WireMockServer(wireMockConfig().dynamicPort());
+        server.start();
+        return server;
     }
 
     private static void assertDefaultAnswer(Map<String, Object> body) {

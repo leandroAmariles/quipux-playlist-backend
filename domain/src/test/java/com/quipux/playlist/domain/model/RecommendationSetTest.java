@@ -46,8 +46,18 @@ class RecommendationSetTest {
 
     @Test
     void exposesTheExternalValueOfEachOrigin() {
+        assertThat(RecommendationOrigin.SIMILARITY.externalValue()).isEqualTo("SIMILITUD");
         assertThat(RecommendationOrigin.AI.externalValue()).isEqualTo("IA");
         assertThat(RecommendationOrigin.FALLBACK.externalValue()).isEqualTo("RESPALDO");
+    }
+
+    @Test
+    void hasNoPromptVersionWhenTheSongsComeFromTheSearch() {
+        RecommendationSet set = RecommendationSet.similar("Mix", songs(7));
+
+        assertThat(set.origin()).isEqualTo(RecommendationOrigin.SIMILARITY);
+        assertThat(set.promptVersion()).isEmpty();
+        assertThat(set.recommendations()).containsExactlyElementsOf(songs(5));
     }
 
     private static List<Recommendation> songs(int count) {

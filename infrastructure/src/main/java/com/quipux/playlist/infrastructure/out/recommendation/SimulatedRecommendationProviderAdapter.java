@@ -2,8 +2,9 @@ package com.quipux.playlist.infrastructure.out.recommendation;
 
 import com.quipux.playlist.application.port.out.RecommendationProviderPort;
 import com.quipux.playlist.domain.exception.RecommendationProviderUnavailableException;
+import com.quipux.playlist.domain.model.CatalogSong;
+import com.quipux.playlist.domain.model.ModelChoice;
 import com.quipux.playlist.domain.model.ProviderIdentity;
-import com.quipux.playlist.domain.model.Recommendation;
 import com.quipux.playlist.domain.model.Song;
 import com.quipux.playlist.domain.model.enums.ErrorMessageEnum;
 import java.util.List;
@@ -28,7 +29,7 @@ public class SimulatedRecommendationProviderAdapter implements RecommendationPro
     }
 
     @Override
-    public Mono<List<Recommendation>> recommend(List<Song> songs) {
+    public Mono<List<ModelChoice>> choose(List<Song> songs, List<CatalogSong> candidates) {
         return Mono.error(() -> new RecommendationProviderUnavailableException(reason));
     }
 }

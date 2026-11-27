@@ -300,7 +300,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"indica el origen\", () => pm.expect(pm.response.json().origen).to.be.oneOf([\"IA\", \"RESPALDO\"]));",
+                  "pm.test(\"indica el origen\", () => pm.expect(pm.response.json().origen).to.be.oneOf([\"IA\", \"SIMILITUD\", \"RESPALDO\"]));",
                   "pm.test(\"trae como máximo 5\", () => pm.expect(pm.response.json().recomendaciones.length).to.be.at.most(5));"
                 ]
               }
@@ -309,6 +309,7 @@
           "request": {
             "method": "GET",
             "header": [],
+            "description": "Hasta 5 canciones. Con origen IA o SIMILITUD salen del catálogo e idCatalogo las identifica (SIMILITUD: el modelo no dio un resultado); con origen RESPALDO idCatalogo va vacío.",
             "url": "{{baseUrl}}/lists/{{listName}}/recommendations",
             "auth": {
               "type": "bearer",

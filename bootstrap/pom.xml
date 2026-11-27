@@ -63,6 +63,11 @@
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
@@ -84,6 +89,7 @@
                             <excludes>
                                 <exclude>**/PlaylistNonBlockingTest.java</exclude>
                                 <exclude>**/RecommendationNonBlockingTest.java</exclude>
+                                <exclude>**/RecommendationsCatalogApiTest.java</exclude>
                                 <exclude>**/GenreCacheNonBlockingTest.java</exclude>
                             </excludes>
                         </configuration>
@@ -109,6 +115,18 @@
                         <configuration>
                             <includes>
                                 <include>**/RecommendationNonBlockingTest.java</include>
+                            </includes>
+                            <argLine>@{argLine} -XX:+AllowRedefinitionToAddDeleteMethods -XX:+EnableDynamicAgentLoading</argLine>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>non-blocking-catalog-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/RecommendationsCatalogApiTest.java</include>
                             </includes>
                             <argLine>@{argLine} -XX:+AllowRedefinitionToAddDeleteMethods -XX:+EnableDynamicAgentLoading</argLine>
                         </configuration>

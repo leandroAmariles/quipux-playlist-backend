@@ -77,6 +77,64 @@ Cada entrada dice qué se pidió, qué devolvió la IA, qué se aceptó o correg
 - **Verificación**: la prueba nueva falló antes del cambio y pasa después; `SlidingWindowRequestQuotaAdapterTest` y
   `ErrorMessageEnumTest` en verde. El resto lo comprueba el CI de la PR.
 
+### P08 · 2026-11-27 · Especificación de HU-13
+
+- **Prompt**: «Realiza la especificacion de la HU-13»
+- **Respuesta**: `specs/13-catalog-recommendations/spec.md` (4 historias, 40 requisitos) y su checklist, en la rama
+  `feature/13-catalog-recommendations`. Señaló los valores y reglas que el backlog y el ADR no concretaban.
+- **Aceptado o corregido**: la persona usuaria pidió el siguiente paso sin pedir cambios.
+- **Verificación**: contraste de cada criterio de HU-13 en `backlog-ia.md` con un requisito; checklist con 13 de 16
+  puntos (los 3 restantes, deliberados).
+
+### P09 · 2026-11-27 · Plan de HU-13
+
+- **Prompt**: «Genera el plan»
+- **Respuesta**: `plan.md`, `research.md`, `data-model.md`, `contracts/` y `quickstart.md`.
+- **Aceptado o corregido**: la persona usuaria pidió el siguiente paso sin pedir cambios; siguen sin respuesta el
+  modelo de chat y el contacto para MusicBrainz.
+- **Verificación**: experimentos desechables con Spring AI 2.0.3, pgvector y los modelos reales (research.md,
+  "Evidencia propia"). Encontraron que LiteLLM rechaza los embeddings del backend con la configuración de HU-12, que el
+  contexto por defecto de Ollama recorta prompts largos, que el modelo pequeño casi nunca responde bien al prompt `v2`
+  sin un esquema JSON y que, con él, no elige mejor que el azar.
+
+### P10 · 2026-11-27 · Tareas de HU-13
+
+- **Prompt**: «Genera las tareas»
+- **Respuesta**: `specs/13-catalog-recommendations/tasks.md` con 77 tareas.
+- **Aceptado o corregido**: pendiente de la revisión de la persona usuaria.
+- **Verificación**: comprobación automática de formato, numeración, etiquetas y citas de `data-model.md`.
+
+### P11 · 2026-11-27 · Implementación de HU-13, fases 1 a 3 (anotado a posteriori)
+
+- **Prompt y respuesta**: no se anotaron en el momento, así que aquí no se reconstruyen. Quedaron hechas las tareas
+  T001 a T032 (salvo T022), T034, T044 y T045, incluida la lista de 228 canciones, reunida con ayuda de IA.
+- **Aceptado o corregido**: sin constancia. El número de pruebas de partida (T001) y el prompt del catálogo (T020)
+  quedaron sin anotar.
+- **Verificación**: al retomar, `./mvnw verify` en verde. `docs/catalog-verification.md`: 214 de 228 canciones
+  coinciden con MusicBrainz y 14 siguen sin comprobar.
+
+### P12 · 2026-11-27 · Implementación de HU-13, US2 a US4 y documentación
+
+- **Prompt**: «Continua con la implementacion de la especificacion actual» y, durante el trabajo, «Agiliza por favor,
+  optimiza el tiempo.»
+- **Respuesta**: candidatas, prompt `v2` con esquema por petición, `SIMILITUD`, tiempo total, caché por versión del
+  catálogo, sus pruebas, README de ambos repositorios y `requests.http`.
+- **Aceptado o corregido**: pendiente de la revisión de la persona usuaria. Corregido por el propio asistente al
+  verificar: tres expectativas de pruebas que no reflejaban `SIMILITUD`, una prueba de BlockHound cuyo calentamiento
+  dejaba los embeddings fallando, una comprobación de registros que no capturaba el *logger* de Reactor (pasó a las
+  pruebas de la API) y dos líneas largas.
+- **Verificación**: `./mvnw verify` con Docker, sin modelos ni clave. No se probó con los modelos reales.
+
+### P13 · 2026-11-27 · Retirada de canciones y PR de HU-13
+
+- **Prompt**: «Retiralas y luego genera los PRS»
+- **Respuesta**: retiradas las 14 canciones sin coincidencia (quedan 214), commits, `origin/main` integrado en ambos
+  repositorios y PR abiertas.
+- **Aceptado o corregido**: la persona usuaria decidió retirar las canciones en lugar de corregirlas.
+- **Verificación**: con `origin/main` integrado, `./mvnw verify` con Docker en verde, sin pruebas de Docker omitidas (la
+  única omitida solo corre en CI), líneas cubiertas por encima del 95 % en cada módulo, `docker compose config` válido y
+  sin claves ni datos personales en los commits de las ramas.
+
 ## 2. Prompt de generación del cliente
 
 Redactado el 2026-11-27 (T028) a partir del puerto, el contrato y los requisitos de `spec.md`, sin las conclusiones de la investigación ni del plan.
@@ -1385,3 +1443,23 @@ Hallados al implementar, no en el código generado:
 | `OpenApiContractTest` (ampliada) | cabecera `Retry-After` | IA |
 | `RecommendationNonBlockingTest` y `PlaylistNonBlockingTest` (ampliada) | BlockHound en todos los caminos | IA |
 | `SlidingWindowRequestQuotaAdapterTest` (ampliada) | límite de peticiones menor que 1 | IA |
+
+### HU-13
+
+Todos los casos los escribió la IA; no consta ninguno añadido a mano.
+
+| Archivo de pruebas | Casos | Origen |
+|---|---|---|
+| `CatalogSongTest`, `SongCatalogTest`, `CatalogRulesTest`, `CatalogIndexPlanTest` | identificadores, versión, validez y plan | IA |
+| `IndexCatalogUseCaseTest`, `FileSongCatalogTest`, `PgVectorSongCatalogIndexTest` | indexación y fichero | IA |
+| `PgVectorCatalogIndexingTest`, `PgVectorCatalogSearchTest`, `DockerRequiredOnCiTest` | pgvector real | IA |
+| `CatalogConfigTest`, `CatalogIsolationApiTest`, `CatalogIndexApplicationTest`, `SchemaTest` (ampliada) | activación y aislamiento | IA |
+| `RecommendationRulesTest`, `RecommendationSetTest`, `RecommendationCacheKeyTest` (ampliadas) | candidatas, elección, similitud y clave | IA |
+| `GetRecommendationsUseCaseTest` (reescrita) | escalera de degradación, tiempo y caché | IA |
+| `CandidateAliasesTest`, `ChoiceSchemaTest`, `PromptTemplateTest`, `LlmResponseParserTest` | contrato con el modelo | IA |
+| `PgVectorSongCatalogSearchTest`, `PgVectorSongCatalogFailureTest` | consulta, tiempo y fallos | IA |
+| `RecommendationsAiApiTest` (reescrita), `RecommendationsCatalogApiTest` | extremo a extremo y BlockHound | IA |
+| `RecommendationEmbeddingsFailureApiTest`, `RecommendationCatalogDownApiTest` | degradaciones con el adaptador real | IA |
+
+Casos de HU-12 que dejaron de aplicar: los de sugerencias libres (campos incompletos y repetidos por título y artista),
+sustituidos por los de identificadores desconocidos y repetidos, porque el modelo ya solo elige entre candidatas.

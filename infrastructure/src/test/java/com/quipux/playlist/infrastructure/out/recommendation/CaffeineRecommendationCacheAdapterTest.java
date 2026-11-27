@@ -51,7 +51,15 @@ class CaffeineRecommendationCacheAdapterTest {
                 .verifyComplete();
     }
 
+    @Test
+    void doesNotGiveAnAnswerSavedWithAnotherVersionOfTheCatalog() {
+        StepVerifier.create(cache
+                        .save(key("songs"), VALUE)
+                        .then(cache.find(new RecommendationCacheKey("songs", "v1", "model", "catalog-2"))))
+                .verifyComplete();
+    }
+
     private static RecommendationCacheKey key(String fingerprint) {
-        return new RecommendationCacheKey(fingerprint, "v1", "model");
+        return new RecommendationCacheKey(fingerprint, "v1", "model", "catalog-1");
     }
 }

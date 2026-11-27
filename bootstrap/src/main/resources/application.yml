@@ -18,7 +18,7 @@ spring:
     # Every model type of the starter is off by default: any of them left on requires an API key to start.
     model:
       chat: ${AI_PROVIDER:none}
-      embedding: none
+      embedding: ${AI_PROVIDER:none}
       image: none
       moderation: none
       audio:
@@ -31,9 +31,13 @@ spring:
       timeout: ${playlist.ai.timeout}
       chat:
         model: ${playlist.ai.chat-model}
+        # The format of the answer goes in every request: its schema depends on the candidates.
         max-tokens: ${playlist.ai.max-output-tokens}
-        response-format:
-          type: JSON_OBJECT
+      embedding:
+        model: ${playlist.ai.embedding-model}
+        # What is compared is the text of a song alone.
+        metadata-mode: none
+        timeout: ${AI_EMBEDDING_TIMEOUT:5s}
 
 server:
   port: 8080
@@ -73,7 +77,8 @@ playlist:
     default-recommendations-file: classpath:default-recommendations.properties
     timeout: ${AI_TIMEOUT:30s}
     chat-model: ${AI_CHAT_MODEL:recomendador-chat}
-    prompt-version: v1
+    embedding-model: ${AI_EMBEDDING_MODEL:recomendador-embeddings}
+    prompt-version: v2
     max-songs: 50
     max-field-length: 100
     max-output-tokens: 600
@@ -87,9 +92,26 @@ playlist:
       minimum-calls: 5
       failure-rate: 50
       open-duration: 30s
+  # The songs that can be recommended and their database, used only while the AI is enabled.
+  catalog:
+    file: classpath:catalog/songs.json
+    jdbc-url: ${CATALOG_DB_URL:}
+    username: ${CATALOG_DB_USER:catalog}
+    password: ${CATALOG_DB_PASSWORD:}
+    candidates: 20
+    retrieval-timeout: ${CATALOG_RETRIEVAL_TIMEOUT:5s}
+    index-batch-size: 50
+    pool:
+      max-size: 4
+      connection-timeout: 2s
+      socket-timeout: 4s
+      query-timeout: 3s
 
 management:
   health:
+    # The database of the catalog is never part of the health of the application.
+    db:
+      enabled: false
     redis:
       enabled: false
   endpoints:

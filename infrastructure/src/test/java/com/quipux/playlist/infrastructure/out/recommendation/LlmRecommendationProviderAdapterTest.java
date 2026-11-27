@@ -10,7 +10,8 @@ import com.openai.errors.OpenAIIoException;
 import com.openai.errors.OpenAIServiceException;
 import com.quipux.playlist.domain.exception.RecommendationProviderUnavailableException;
 import com.quipux.playlist.domain.model.ProviderIdentity;
-import com.quipux.playlist.domain.model.Recommendation;
+import com.quipux.playlist.domain.model.CatalogSong;
+import com.quipux.playlist.domain.model.ModelChoice;
 import com.quipux.playlist.domain.model.Song;
 import com.quipux.playlist.domain.model.SongSample;
 import com.quipux.playlist.domain.model.enums.ErrorMessageEnum;
@@ -30,7 +31,10 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.core.io.ClassPathResource;
 import reactor.core.publisher.Flux;
 import reactor.core.Disposable;
@@ -41,10 +45,15 @@ import reactor.test.StepVerifier;
 class LlmRecommendationProviderAdapterTest {
 
     private static final List<Song> SONGS = List.of(new Song("Song", "Artist", null, null, null));
-    private static final String VALID = "{\"recomendaciones\":[{\"titulo\":\"New\",\"artista\":\"Singer\"}]}";
+    private static final List<CatalogSong> CANDIDATES = List.of(
+            CatalogSong.of("First", "Singer", "Album", "2000", "rock"),
+            CatalogSong.of("Second", "Singer", "Album", "2000", "rock"));
+    private static final String VALID = "{\"recomendaciones\":[{\"idCatalogo\":\"c2\",\"motivo\":\"Afín\"}]}";
+    private static final List<ModelChoice> CHOSEN = List.of(new ModelChoice(CANDIDATES.get(1).id(), "Afín"));
     private static final Duration LIMIT = Duration.ofMillis(300);
     private static final Duration OPEN = Duration.ofMillis(200);
 
+    private final AtomicReference<Prompt> sent = new AtomicReference<>();
     private final AtomicInteger calls = new AtomicInteger();
     private final AtomicReference<Flux<ChatResponse>> next = new AtomicReference<>(answer(VALID));
     private final CircuitBreaker circuitBreaker = CircuitBreaker.of("test", CircuitBreakerConfig.custom()
@@ -61,10 +70,36 @@ class LlmRecommendationProviderAdapterTest {
     void joinsTheChunksOfTheAnswer() {
         next.set(Flux.just(chunk(VALID.substring(0, 10)), chunk(VALID.substring(10)), new ChatResponse(List.of())));
 
-        StepVerifier.create(adapter.recommend(SONGS))
-                .expectNext(List.of(new Recommendation("New", "Singer", null, null)))
+        StepVerifier.create(adapter.choose(SONGS, CANDIDATES))
+                .expectNext(CHOSEN)
                 .verifyComplete();
-        assertThat(adapter.identity()).isEqualTo(new ProviderIdentity("v1", "model"));
+        assertThat(adapter.identity()).isEqualTo(new ProviderIdentity("v2", "model"));
+    }
+
+    @Test
+    void asksForAnAnswerLimitedToTheAliasesWithoutLosingTheOptionsOfTheModel() {
+        StepVerifier.create(adapter.choose(SONGS, CANDIDATES)).expectNext(CHOSEN).verifyComplete();
+
+        assertThat(sent.get().getOptions()).isInstanceOfSatisfying(OpenAiChatOptions.class, options -> {
+            // Options of a request replace those of the model: both must still be there.
+            assertThat(options.getModel()).isEqualTo("model");
+            assertThat(options.getMaxTokens()).isEqualTo(600);
+            assertThat(options.getResponseFormat().getType())
+                    .isEqualTo(OpenAiChatModel.ResponseFormat.Type.JSON_SCHEMA);
+            assertThat(options.getResponseFormat().getStrict()).isTrue();
+            assertThat(options.getResponseFormat().getJsonSchema())
+                    .isEqualTo(ChoiceSchema.of(List.of("c1", "c2")));
+        });
+        assertThat(sent.get().getInstructions()).hasSize(2);
+        assertThat(sent.get().getContents()).contains("<candidatas>[{\"idCatalogo\":\"c1\",\"titulo\":\"First\"");
+    }
+
+    @Test
+    void discardsTheAliasesItDidNotOffer() {
+        next.set(answer("{\"recomendaciones\":[{\"idCatalogo\":\"c3\"},"
+                + "{\"idCatalogo\":\"c2\",\"motivo\":\"Afín\"}]}"));
+
+        StepVerifier.create(adapter.choose(SONGS, CANDIDATES)).expectNext(CHOSEN).verifyComplete();
     }
 
     @Test
@@ -119,7 +154,7 @@ class LlmRecommendationProviderAdapterTest {
         assertThat(calls).hasValue(5);
 
         next.set(answer(VALID));
-        StepVerifier.create(Mono.delay(OPEN.multipliedBy(2)).then(adapter.recommend(SONGS)))
+        StepVerifier.create(Mono.delay(OPEN.multipliedBy(2)).then(adapter.choose(SONGS, CANDIDATES)))
                 .expectNextCount(1)
                 .verifyComplete();
         assertThat(calls).hasValue(6);
@@ -133,7 +168,7 @@ class LlmRecommendationProviderAdapterTest {
             expectReason(ErrorMessageEnum.RECOMMENDATION_PROVIDER_TIMEOUT.format());
         }
 
-        StepVerifier.create(Mono.delay(OPEN.multipliedBy(2)).then(adapter.recommend(SONGS)))
+        StepVerifier.create(Mono.delay(OPEN.multipliedBy(2)).then(adapter.choose(SONGS, CANDIDATES)))
                 .expectError(RecommendationProviderUnavailableException.class)
                 .verify();
 
@@ -148,7 +183,7 @@ class LlmRecommendationProviderAdapterTest {
                 Flux.<ChatResponse>error(new OpenAIInvalidDataException("bad chunk")))) {
             next.set(content);
             for (int call = 0; call < 6; call++) {
-                StepVerifier.create(adapter.recommend(SONGS))
+                StepVerifier.create(adapter.choose(SONGS, CANDIDATES))
                         .expectError(RecommendationProviderUnavailableException.class)
                         .verify();
             }
@@ -163,11 +198,11 @@ class LlmRecommendationProviderAdapterTest {
         LlmRecommendationProviderAdapter twoAtOnce = adapter(Duration.ofSeconds(10), 2);
         Sinks.One<ChatResponse> model = Sinks.one();
         next.set(model.asMono().flux());
-        CompletableFuture<List<Recommendation>> first = twoAtOnce.recommend(SONGS).toFuture();
-        CompletableFuture<List<Recommendation>> second = twoAtOnce.recommend(SONGS).toFuture();
+        CompletableFuture<List<ModelChoice>> first = twoAtOnce.choose(SONGS, CANDIDATES).toFuture();
+        CompletableFuture<List<ModelChoice>> second = twoAtOnce.choose(SONGS, CANDIDATES).toFuture();
         await().until(() -> calls.get() == 2);
 
-        StepVerifier.create(twoAtOnce.recommend(SONGS))
+        StepVerifier.create(twoAtOnce.choose(SONGS, CANDIDATES))
                 .expectErrorMessage(ErrorMessageEnum.RECOMMENDATION_PROVIDER_TOO_MANY_CALLS.format())
                 .verify(Duration.ofSeconds(1));
         assertThat(calls).hasValue(2);
@@ -175,7 +210,7 @@ class LlmRecommendationProviderAdapterTest {
         model.tryEmitValue(chunk(VALID)).orThrow();
         await().until(() -> first.isDone() && second.isDone());
         next.set(answer(VALID));
-        StepVerifier.create(twoAtOnce.recommend(SONGS)).expectNextCount(1).verifyComplete();
+        StepVerifier.create(twoAtOnce.choose(SONGS, CANDIDATES)).expectNextCount(1).verifyComplete();
         assertThat(circuitBreaker.getMetrics().getNumberOfFailedCalls()).isZero();
     }
 
@@ -185,46 +220,46 @@ class LlmRecommendationProviderAdapterTest {
         Sinks.One<ChatResponse> model = Sinks.one();
         AtomicBoolean cancelled = new AtomicBoolean();
         next.set(model.asMono().flux().doOnCancel(() -> cancelled.set(true)));
-        Disposable abandoned = oneAtOnce.recommend(SONGS).subscribe();
+        Disposable abandoned = oneAtOnce.choose(SONGS, CANDIDATES).subscribe();
         await().until(() -> calls.get() == 1);
 
         abandoned.dispose();
 
-        StepVerifier.create(oneAtOnce.recommend(SONGS))
+        StepVerifier.create(oneAtOnce.choose(SONGS, CANDIDATES))
                 .expectErrorMessage(ErrorMessageEnum.RECOMMENDATION_PROVIDER_TOO_MANY_CALLS.format())
                 .verify(Duration.ofSeconds(1));
         assertThat(cancelled).isFalse();
 
         model.tryEmitValue(chunk(VALID)).orThrow();
         next.set(answer(VALID));
-        StepVerifier.create(oneAtOnce.recommend(SONGS)).expectNextCount(1).verifyComplete();
+        StepVerifier.create(oneAtOnce.choose(SONGS, CANDIDATES)).expectNextCount(1).verifyComplete();
     }
 
     @Test
     void returnsThePermitOfACallThatTimesOut() {
         LlmRecommendationProviderAdapter oneAtOnce = adapter(LIMIT, 1);
         next.set(Flux.never());
-        StepVerifier.create(oneAtOnce.recommend(SONGS))
+        StepVerifier.create(oneAtOnce.choose(SONGS, CANDIDATES))
                 .expectErrorMessage(ErrorMessageEnum.RECOMMENDATION_PROVIDER_TIMEOUT.format())
                 .verify(Duration.ofSeconds(5));
 
         next.set(answer(VALID));
 
-        StepVerifier.create(oneAtOnce.recommend(SONGS)).expectNextCount(1).verifyComplete();
+        StepVerifier.create(oneAtOnce.choose(SONGS, CANDIDATES)).expectNextCount(1).verifyComplete();
     }
 
     private LlmRecommendationProviderAdapter adapter(Duration timeout, int maxConcurrentCalls) {
         return new LlmRecommendationProviderAdapter(
                 chatModel(),
-                new PromptTemplate(new ClassPathResource("prompts/recommendations/v1.txt")),
+                new PromptTemplate(new ClassPathResource("prompts/recommendations/v2.txt")),
                 new LlmResponseParser(),
-                new LlmSettings(new ProviderIdentity("v1", "model"), new SongSample(50, 100), timeout,
+                new LlmSettings(new ProviderIdentity("v2", "model"), new SongSample(50, 100), timeout,
                         maxConcurrentCalls),
                 circuitBreaker);
     }
 
     private void expectReason(String reason) {
-        StepVerifier.create(adapter.recommend(SONGS))
+        StepVerifier.create(adapter.choose(SONGS, CANDIDATES))
                 .expectErrorSatisfies(error -> assertThat(error)
                         .isInstanceOf(RecommendationProviderUnavailableException.class)
                         .hasMessage(reason)
@@ -240,7 +275,13 @@ class LlmRecommendationProviderAdapterTest {
             }
 
             @Override
+            public ChatOptions getOptions() {
+                return OpenAiChatOptions.builder().model("model").maxTokens(600).build();
+            }
+
+            @Override
             public Flux<ChatResponse> stream(Prompt prompt) {
+                sent.set(prompt);
                 calls.incrementAndGet();
                 return next.get();
             }

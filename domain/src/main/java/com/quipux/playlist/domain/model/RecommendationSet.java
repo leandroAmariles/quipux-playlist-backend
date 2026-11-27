@@ -25,6 +25,11 @@ public record RecommendationSet(
         return new RecommendationSet(playlistName, RecommendationOrigin.AI, promptVersion, recommendations);
     }
 
+    /** The songs most similar to the playlist, given when the model has no result. */
+    public static RecommendationSet similar(String playlistName, List<Recommendation> recommendations) {
+        return new RecommendationSet(playlistName, RecommendationOrigin.SIMILARITY, "", recommendations);
+    }
+
     public static RecommendationSet fallback(String playlistName, List<Recommendation> recommendations) {
         return new RecommendationSet(playlistName, RecommendationOrigin.FALLBACK, "", recommendations);
     }

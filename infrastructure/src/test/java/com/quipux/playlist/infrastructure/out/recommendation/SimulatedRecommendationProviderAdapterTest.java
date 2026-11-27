@@ -3,6 +3,7 @@ package com.quipux.playlist.infrastructure.out.recommendation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.quipux.playlist.domain.exception.RecommendationProviderUnavailableException;
+import com.quipux.playlist.domain.model.CatalogSong;
 import com.quipux.playlist.domain.model.ProviderIdentity;
 import com.quipux.playlist.domain.model.Song;
 import com.quipux.playlist.domain.model.enums.ErrorMessageEnum;
@@ -21,7 +22,9 @@ class SimulatedRecommendationProviderAdapterTest {
     void saysWhyItCannotAnswer(ErrorMessageEnum reason) {
         SimulatedRecommendationProviderAdapter adapter = new SimulatedRecommendationProviderAdapter(reason, IDENTITY);
 
-        StepVerifier.create(adapter.recommend(List.of(new Song("Title", "Artist", null, null, null))))
+        StepVerifier.create(adapter.choose(
+                        List.of(new Song("Title", "Artist", null, null, null)),
+                        List.of(CatalogSong.of("Other", "Artist", "Album", "2000", "rock"))))
                 .expectErrorSatisfies(error -> assertThat(error)
                         .isInstanceOf(RecommendationProviderUnavailableException.class)
                         .hasMessage(reason.format()))
