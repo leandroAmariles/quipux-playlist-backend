@@ -2,7 +2,30 @@
 
 API REST reactiva para gestionar listas de reproducción de música.
 
-**En construcción:** por ahora está el esqueleto del proyecto. Todavía no hay endpoints.
+**En construcción:** están las operaciones sobre listas. Faltan autenticación, géneros y la aplicación web.
+
+> **Sin autenticación todavía:** hasta HU-03 cualquiera puede crear y borrar listas. No exponer en una red pública.
+
+## API
+
+| Método y ruta | Respuestas |
+|---|---|
+| `POST /lists` | `201` con `Location`; `400`, `409`, `413`, `415` |
+| `GET /lists` | `200` |
+| `GET /lists/{listName}` | `200`; `404` |
+| `DELETE /lists/{listName}` | `204`; `404` |
+
+```bash
+curl -i -X POST http://localhost:8080/lists -H 'Content-Type: application/json' \
+  -d '{"nombre":"Mis favoritas","descripcion":"Demo","canciones":[{"titulo":"Uno","anno":"1999"}]}'
+curl -i http://localhost:8080/lists/Mis%20favoritas
+```
+
+Detalle en el [contrato REST](specs/02-playlist-management/contracts/rest-api.md) y casos de prueba en
+[requests.http](specs/02-playlist-management/requests.http).
+
+**Sobre el modelo no bloqueante:** la API es reactiva de extremo a extremo, pero el controlador `r2dbc-h2` ejecuta
+las consultas en el mismo hilo que las pide. Con la base en memoria son operaciones cortas.
 
 ## Repositorios
 
