@@ -4,6 +4,7 @@ import com.quipux.playlist.domain.model.enums.PlaylistEventType;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 public record PlaylistEvent(
         UUID eventId,
@@ -30,7 +31,7 @@ public record PlaylistEvent(
     public static PlaylistEvent created(Playlist playlist) {
         Objects.requireNonNull(playlist, "playlist must not be null");
         return new PlaylistEvent(
-                UUID.randomUUID(),
+                newEventId(),
                 PlaylistEventType.PLAYLIST_CREATED,
                 playlist.name(),
                 playlist.songs().size(),
@@ -39,10 +40,17 @@ public record PlaylistEvent(
 
     public static PlaylistEvent deleted(String playlistName) {
         return new PlaylistEvent(
-                UUID.randomUUID(),
+                newEventId(),
                 PlaylistEventType.PLAYLIST_DELETED,
                 playlistName,
                 null,
                 Instant.now());
+    }
+
+    private static UUID newEventId() {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        long mostSigBits = (random.nextLong() & ~0x0000_0000_0000_F000L) | 0x0000_0000_0000_4000L;
+        long leastSigBits = (random.nextLong() & 0x3FFF_FFFF_FFFF_FFFFL) | 0x8000_0000_0000_0000L;
+        return new UUID(mostSigBits, leastSigBits);
     }
 }

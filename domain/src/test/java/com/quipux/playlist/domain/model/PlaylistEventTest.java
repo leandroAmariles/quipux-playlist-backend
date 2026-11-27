@@ -20,6 +20,8 @@ class PlaylistEventTest {
         PlaylistEvent event = PlaylistEvent.created(playlist);
 
         assertThat(event.eventId()).isNotNull();
+        assertThat(event.eventId().version()).isEqualTo(4);
+        assertThat(event.eventId().variant()).isEqualTo(2);
         assertThat(event.eventType()).isEqualTo(PlaylistEventType.PLAYLIST_CREATED);
         assertThat(event.playlistName()).isEqualTo("Rock");
         assertThat(event.songCount()).isEqualTo(2);
@@ -31,6 +33,8 @@ class PlaylistEventTest {
         PlaylistEvent event = PlaylistEvent.deleted("Rock");
 
         assertThat(event.eventId()).isNotNull();
+        assertThat(event.eventId().version()).isEqualTo(4);
+        assertThat(event.eventId().variant()).isEqualTo(2);
         assertThat(event.eventType()).isEqualTo(PlaylistEventType.PLAYLIST_DELETED);
         assertThat(event.playlistName()).isEqualTo("Rock");
         assertThat(event.songCount()).isNull();
