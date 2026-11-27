@@ -1,0 +1,261 @@
+# HU-12: casos de prueba de la especificacion (spec.md). Ejecutar de arriba abajo.
+#
+# Parte A: aplicacion recien arrancada con la configuracion por defecto (IA desactivada).
+# Parte B: con la IA activada y el modelo en marcha (quipux-playlist-infra, compose.ai.yaml). Ejecutar solo la
+#          preparacion de la parte A (tokens y listas) y esperar un minuto antes, por el limite de peticiones.
+#
+# Not covered here (se comprueban en las pruebas automaticas o a mano):
+#   US1-5, FR-005 403  hace falta un token firmado sin rol: RecommendationsApiTest
+#   US2-2 a US2-7, FR-014, FR-015  dependen de lo que responda el modelo: RecommendationsAiApiTest
+#   US3-1 a US3-7, FR-017 a FR-020, FR-022  fallos del proveedor: RecommendationFailureApiTest,
+#          LlmRecommendationProviderAdapterTest
+#   US3-8, FR-023, FR-031  servicios de IA detenidos: quickstart.md
+#   US4, FR-042 a FR-044  AI-LOG.md y README
+#   US5-3, US5-5 a US5-8, FR-028  cuota con reloj, concurrencia y canciones enviadas: RecommendationLimitsApiTest,
+#          SlidingWindowRequestQuotaAdapterTest
+#   US6, FR-030 a FR-039  composicion: quickstart.md
+#   FR-009 IA activada sin clave: RecommendationsWithoutKeyApiTest
+#   FR-024  RecommendationNonBlockingTest; FR-025  RecommendationLoggingApiTest
+
+@baseUrl = http://localhost:8080
+# Los valores de DEMO_USER_PASSWORD y DEMO_ADMIN_PASSWORD. No guardarlos en el repositorio.
+@userPassword = <contrasena-user>
+@adminPassword = <contrasena-admin>
+
+### Preparacion: token de user — expects 200
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "user", "password": "{{userPassword}}"}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.global.set("userToken", response.body.accessToken);
+%}
+
+### Preparacion: token de admin — expects 200
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": "{{adminPassword}}"}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.global.set("adminToken", response.body.accessToken);
+%}
+
+### Preparacion: borrar la lista con canciones si existe — expects 204 o 404
+DELETE {{baseUrl}}/lists/hu12-canciones
+Authorization: Bearer {{adminToken}}
+
+### Preparacion: borrar la lista vacia si existe — expects 204 o 404
+DELETE {{baseUrl}}/lists/hu12-vacia
+Authorization: Bearer {{adminToken}}
+
+### Preparacion: borrar la lista llamada recommendations si existe — expects 204 o 404
+DELETE {{baseUrl}}/lists/recommendations
+Authorization: Bearer {{adminToken}}
+
+### Preparacion: crear una lista que ya contiene una cancion de la lista por defecto — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu12-canciones", "canciones": [
+  {"titulo": "Bohemian Rhapsody", "artista": "Queen", "genero": "rock"},
+  {"titulo": "Stairway to Heaven", "artista": "Led Zeppelin", "genero": "rock"}
+]}
+
+> {%
+client.test("status 201", () => client.assert(response.status === 201));
+%}
+
+### Preparacion: crear una lista sin canciones — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu12-vacia"}
+
+> {%
+client.test("status 201", () => client.assert(response.status === 201));
+%}
+
+### Preparacion: crear una lista llamada recommendations — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "recommendations"}
+
+> {%
+client.test("status 201", () => client.assert(response.status === 201));
+%}
+
+########## Parte A: IA desactivada
+
+### US1-1 / FR-001 a FR-004, FR-008, FR-021: user recibe la lista por defecto — expects 200 RESPALDO
+GET {{baseUrl}}/lists/hu12-canciones/recommendations
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.test("fallback", () => client.assert(response.body.lista === "hu12-canciones"
+  && response.body.origen === "RESPALDO" && response.body.versionPrompt === ""));
+client.test("up to 5, unverified", () => client.assert(response.body.recomendaciones.length === 5
+  && response.body.recomendaciones.every(r => r.idCatalogo === "" && r.titulo && r.artista)));
+client.test("no song already in the playlist", () => client.assert(
+  response.body.recomendaciones.every(r => r.titulo !== "Bohemian Rhapsody")));
+%}
+
+### US1-2 / FR-001: admin recibe la misma respuesta — expects 200
+GET {{baseUrl}}/lists/hu12-canciones/recommendations
+Authorization: Bearer {{adminToken}}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.test("fallback", () => client.assert(response.body.origen === "RESPALDO"));
+%}
+
+### US1-7 / FR-029: lista sin canciones — expects 200 RESPALDO
+GET {{baseUrl}}/lists/hu12-vacia/recommendations
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.test("fallback", () => client.assert(response.body.origen === "RESPALDO"));
+%}
+
+### Edge "Lista llamada recommendations" — expects 200
+GET {{baseUrl}}/lists/recommendations/recommendations
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.test("name", () => client.assert(response.body.lista === "recommendations"));
+%}
+
+### Edge "Peticiones HEAD" — expects 200
+HEAD {{baseUrl}}/lists/hu12-canciones/recommendations
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+%}
+
+### US1-3 / FR-005, FR-022: lista inexistente — expects 404 PLAYLIST_GE_00002
+GET {{baseUrl}}/lists/hu12-no-existe/recommendations
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("status 404", () => client.assert(response.status === 404));
+client.test("code", () => client.assert(response.body.code === "PLAYLIST_GE_00002"));
+%}
+
+### US1-4 / FR-005: sin token — expects 401 AUTH_ERROR_002
+GET {{baseUrl}}/lists/hu12-canciones/recommendations
+
+> {%
+client.test("status 401", () => client.assert(response.status === 401));
+%}
+
+### US1-4 / FR-005: token no valido — expects 401
+GET {{baseUrl}}/lists/hu12-canciones/recommendations
+Authorization: Bearer no-es-un-token
+
+> {%
+client.test("status 401", () => client.assert(response.status === 401));
+%}
+
+### US1-6 / FR-005, FR-006: nombre no valido, antes de comprobar el token — expects 400 PLAYLIST_GE_00001
+GET {{baseUrl}}/lists/%252F/recommendations
+
+> {%
+client.test("status 400", () => client.assert(response.status === 400));
+%}
+
+########## US5-4 / FR-027: limite de 10 peticiones por usuario y minuto
+# user ya gasto 5 en este minuto (US1-1, US1-7, recommendations, HEAD y US1-3): las 5 siguientes se atienden.
+
+### US5-4 peticion 6 de 10 — expects 200
+GET {{baseUrl}}/lists/hu12-vacia/recommendations
+Authorization: Bearer {{userToken}}
+
+### US5-4 peticion 7 de 10 — expects 200
+GET {{baseUrl}}/lists/hu12-vacia/recommendations
+Authorization: Bearer {{userToken}}
+
+### US5-4 peticion 8 de 10 — expects 200
+GET {{baseUrl}}/lists/hu12-vacia/recommendations
+Authorization: Bearer {{userToken}}
+
+### US5-4 peticion 9 de 10 — expects 200
+GET {{baseUrl}}/lists/hu12-vacia/recommendations
+Authorization: Bearer {{userToken}}
+
+### US5-4 peticion 10 de 10 — expects 200
+GET {{baseUrl}}/lists/hu12-vacia/recommendations
+Authorization: Bearer {{userToken}}
+
+### US5-4 / FR-005, FR-027: la undecima — expects 429 RECOMMENDATION_ERROR_001 con Retry-After
+GET {{baseUrl}}/lists/hu12-vacia/recommendations
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("status 429", () => client.assert(response.status === 429));
+client.test("code", () => client.assert(response.body.code === "RECOMMENDATION_ERROR_001"));
+client.test("retry after", () => client.assert(Number(response.headers.valueOf("Retry-After")) >= 1));
+%}
+
+### US5-6: otro usuario no se ve afectado — expects 200
+GET {{baseUrl}}/lists/hu12-vacia/recommendations
+Authorization: Bearer {{adminToken}}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+%}
+
+########## Parte B: IA activada
+
+### US2-1 / FR-001 a FR-004, FR-011: sugerencias del modelo — expects 200 IA
+GET {{baseUrl}}/lists/hu12-canciones/recommendations
+Authorization: Bearer {{adminToken}}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.test("from the model", () => client.assert(response.body.origen === "IA"
+  && response.body.versionPrompt === "v1"));
+client.test("1 to 5, unverified", () => client.assert(response.body.recomendaciones.length >= 1
+  && response.body.recomendaciones.length <= 5
+  && response.body.recomendaciones.every(r => r.idCatalogo === "" && r.motivo.length <= 120)));
+client.global.set("firstAnswer", JSON.stringify(response.body));
+%}
+
+### US5-1 / FR-026: la misma lista otra vez, desde la cache — expects 200 con la misma respuesta
+GET {{baseUrl}}/lists/hu12-canciones/recommendations
+Authorization: Bearer {{adminToken}}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.test("same answer", () => client.assert(
+  JSON.stringify(response.body) === client.global.get("firstAnswer")));
+%}
+
+### US5-2: borrar la lista — expects 204
+DELETE {{baseUrl}}/lists/hu12-canciones
+Authorization: Bearer {{adminToken}}
+
+### US5-2: crearla de nuevo con otras canciones — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu12-canciones", "canciones": [{"titulo": "Pedro Navaja", "artista": "Ruben Blades"}]}
+
+### US5-2 / FR-026: se vuelve a pedir al modelo (el registro indica cached=false) — expects 200
+GET {{baseUrl}}/lists/hu12-canciones/recommendations
+Authorization: Bearer {{adminToken}}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+%}
