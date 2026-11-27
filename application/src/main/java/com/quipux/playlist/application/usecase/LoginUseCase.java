@@ -8,7 +8,6 @@ import com.quipux.playlist.domain.exception.InvalidCredentialsException;
 import com.quipux.playlist.domain.model.AccessToken;
 import com.quipux.playlist.domain.model.Credentials;
 import com.quipux.playlist.domain.model.User;
-import java.util.Optional;
 import java.util.UUID;
 import reactor.core.publisher.Mono;
 
@@ -33,17 +32,19 @@ public class LoginUseCase implements LoginPort {
             return Mono.error(new InvalidCredentialsException());
         }
         return repository.findByUsername(credentials.username())
-                .map(Optional::of)
-                .defaultIfEmpty(Optional.empty())
-                .flatMap(user -> authenticate(credentials.password(), user))
+                .map(user -> new Candidate(Mono.just(user.passwordHash()), Mono.just(user)))
+                .defaultIfEmpty(new Candidate(decoyHash, Mono.empty()))
+                .flatMap(candidate -> authenticate(credentials.password(), candidate))
                 .flatMap(tokenIssuer::issue);
     }
 
-    private Mono<User> authenticate(String password, Optional<User> user) {
-        return user.map(found -> Mono.just(found.passwordHash()))
-                .orElse(decoyHash)
+    private Mono<User> authenticate(String password, Candidate candidate) {
+        return candidate.passwordHash()
                 .flatMap(hash -> passwordHasher.matches(password, hash))
-                .flatMap(matches -> matches ? Mono.justOrEmpty(user) : Mono.empty())
+                .flatMap(matches -> matches ? candidate.user() : Mono.empty())
                 .switchIfEmpty(Mono.error(InvalidCredentialsException::new));
+    }
+
+    private record Candidate(Mono<String> passwordHash, Mono<User> user) {
     }
 }
