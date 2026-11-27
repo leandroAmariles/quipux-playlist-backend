@@ -98,7 +98,8 @@ public class RecommendationEvaluationApplication {
     private int evaluate(
             EvaluateRecommendationsPort evaluation, SongCatalogPort catalog, String cases, String output) {
         List<Map<String, Object>> results = readCases(Path.of(cases)).stream()
-                .map(entry -> resultOf(entry.id(), evaluation.evaluate(entry.playlist()).block()))
+                // A case without a result stops the run: a report with a case missing would mislead.
+                .map(entry -> resultOf(entry.id(), evaluation.evaluate(entry.playlist()).blockOptional().orElseThrow()))
                 .toList();
         write(Path.of(output), Map.of(
                 "versionCatalogo", catalog.catalog().version(),

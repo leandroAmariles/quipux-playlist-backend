@@ -169,6 +169,15 @@ Cada entrada dice qué se pidió, qué devolvió la IA, qué se aceptó o correg
   script y compose válido. No se repitió el recorrido con la pila real ni la evaluación.
 - **Sigue abierto:** revisión de la muestra por una persona, memoria de Docker sin ampliar y motivos falsos del modelo.
 
+### P17 · 2026-11-27 · Fallo del CI de HU-14
+
+- **Prompt:** "El CI fallo"
+- **Respuesta:** Qodana marcaba `DataFlowIssue` en `RecommendationEvaluationApplication`: `block()` podía devolver
+  `null`. Ahora una lista sin resultado detiene la evaluación de forma explícita. Aparte, `verify` no terminaba en el
+  CI, igual que en `main` antes de HU-14: la última ejecución de `main` se canceló por tiempo.
+- **Verificación:** `RecommendationEvaluationApplicationTest` y Checkstyle en verde en local. Qodana y `verify` los
+  comprueba el CI de la PR.
+
 ## 2. Prompt de generación del cliente
 
 Redactado el 2026-11-27 (T028) a partir del puerto, el contrato y los requisitos de `spec.md`, sin las conclusiones de la investigación ni del plan.
