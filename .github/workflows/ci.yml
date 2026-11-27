@@ -64,7 +64,10 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
+      # Secret scanning needs no dependency data; without this Trivy fetches parent POMs and Maven Central answers 429.
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_OFFLINE_SCAN: "true"
         with:
           version: v0.76.2
           scan-type: fs
