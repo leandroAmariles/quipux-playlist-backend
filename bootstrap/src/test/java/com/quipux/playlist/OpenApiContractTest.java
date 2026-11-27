@@ -158,10 +158,16 @@ class OpenApiContractTest extends ApiTestSupport {
         body.put("canciones", List.of(examplesOf("SongDto")));
         String name = String.valueOf(body.get("nombre"));
 
-        StepVerifier.create(create(body).flatMap(status -> webClient.delete().uri("/lists/{name}", name)
-                        .exchangeToMono(response -> response.releaseBody().thenReturn(status))))
+        StepVerifier.create(remove(name)
+                        .then(create(body))
+                        .flatMap(status -> remove(name).thenReturn(status)))
                 .expectNext(201)
                 .verifyComplete();
+    }
+
+    private Mono<Void> remove(String name) {
+        return webClient.delete().uri("/lists/{name}", name)
+                .exchangeToMono(response -> response.releaseBody());
     }
 
     private Map<String, Object> examplesOf(String schema) {
