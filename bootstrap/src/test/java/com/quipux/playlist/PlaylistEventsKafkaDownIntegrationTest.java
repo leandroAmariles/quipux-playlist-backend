@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.kafka.KafkaContainer;
-import org.testcontainers.utility.DockerImageName;
 import reactor.test.StepVerifier;
 import tools.jackson.databind.JsonNode;
 
@@ -151,7 +150,7 @@ class PlaylistEventsKafkaDownIntegrationTest extends ApiTestSupport {
     }
 
     private static KafkaContainer startKafka() {
-        KafkaContainer container = new KafkaContainer(DockerImageName.parse("apache/kafka-native:4.0.0"));
+        KafkaContainer container = TestKafka.container();
         container.start();
         return container;
     }

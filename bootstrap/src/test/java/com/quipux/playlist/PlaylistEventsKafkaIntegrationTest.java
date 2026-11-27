@@ -36,7 +36,6 @@ import org.springframework.web.util.UriUtils;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.KafkaContainer;
-import org.testcontainers.utility.DockerImageName;
 import reactor.test.StepVerifier;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -48,8 +47,7 @@ class PlaylistEventsKafkaIntegrationTest extends ApiTestSupport {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Container
-    private static final KafkaContainer KAFKA =
-            new KafkaContainer(DockerImageName.parse("apache/kafka-native:4.0.0"));
+    private static final KafkaContainer KAFKA = TestKafka.container();
 
     private final ListAppender<ILoggingEvent> auditAppender = new ListAppender<>();
     private Logger auditLogger;
