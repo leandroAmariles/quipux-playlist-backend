@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.blockhound.BlockHound;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -41,7 +40,7 @@ class RecommendationNonBlockingTest extends AiApiTestSupport {
                 .expectNextCount(1)
                 .thenConsumeWhile(status -> true)
                 .verifyComplete();
-        BlockHound.install();
+        installBlockHound();
     }
 
     @Test

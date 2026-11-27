@@ -23,7 +23,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
-import reactor.blockhound.BlockHound;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -57,7 +56,7 @@ class PlaylistEventsNonBlockingTest extends ApiTestSupport {
         StepVerifier.create(createAndDelete("warm-up"))
                 .expectNext(201, 204)
                 .verifyComplete();
-        BlockHound.install();
+        installBlockHound();
     }
 
     @AfterAll
