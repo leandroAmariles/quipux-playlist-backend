@@ -50,24 +50,24 @@ Basado en el ADR-0001. Se prioriza la calidad sobre el plazo: las horas (16 en t
 **Como** usuario, **quiero** consultar las listas, y como administrador crearlas y borrarlas, **para** organizar la música.
 
 **Crear**
-- [ ] `POST /lists` válido devuelve `201`, cabecera `Location` y el contenido.
-- [ ] Nombre nulo o vacío devuelve `400` con `ProblemDetail`.
-- [ ] Nombre duplicado devuelve `409`.
-- [ ] Si falla el guardado de una canción, no queda nada guardado.
-- [ ] Se aceptan nombres con espacios y `Location` va codificada.
+- [x] `POST /lists` válido devuelve `201`, cabecera `Location` y el contenido.
+- [x] Nombre nulo o vacío devuelve `400` con `ProblemDetail`.
+- [x] Nombre duplicado devuelve `409`.
+- [x] Si falla el guardado de una canción, no queda nada guardado.
+- [x] Se aceptan nombres con espacios y `Location` va codificada.
 
 **Ver todas**
-- [ ] `GET /lists` devuelve `200` con las listas y sus canciones.
-- [ ] Sin listas, devuelve un arreglo vacío.
+- [x] `GET /lists` devuelve `200` con las listas y sus canciones.
+- [x] Sin listas, devuelve un arreglo vacío.
 
 **Ver una**
-- [ ] `GET /lists/{listName}` devuelve `200` con nombre, descripción y canciones.
-- [ ] Si no existe, devuelve `404`.
+- [x] `GET /lists/{listName}` devuelve `200` con nombre, descripción y canciones.
+- [x] Si no existe, devuelve `404`.
 
 **Borrar**
-- [ ] `DELETE /lists/{listName}` devuelve `204`.
-- [ ] Si no existe, devuelve `404`.
-- [ ] Sus canciones se borran en la misma transacción.
+- [x] `DELETE /lists/{listName}` devuelve `204`.
+- [x] Si no existe, devuelve `404`.
+- [x] Sus canciones se borran en la misma transacción.
 
 ### HU-03: Autenticación y autorización
 **Como** usuario, **quiero** autenticarme y operar según mi rol, **para** usar el sistema con los datos protegidos.

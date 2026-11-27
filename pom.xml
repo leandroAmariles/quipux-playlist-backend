@@ -28,6 +28,8 @@
     <properties>
         <java.version>21</java.version>
         <archunit.version>1.5.1</archunit.version>
+        <mapstruct.version>1.6.3</mapstruct.version>
+        <blockhound.version>1.0.19.RELEASE</blockhound.version>
         <jacoco.version>0.8.16</jacoco.version>
         <jacoco.line.minimum>0.80</jacoco.line.minimum>
         <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
@@ -36,6 +38,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.quipux.playlist</groupId>
                 <artifactId>playlist-domain</artifactId>
