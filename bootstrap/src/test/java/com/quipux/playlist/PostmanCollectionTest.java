@@ -110,7 +110,8 @@ class PostmanCollectionTest {
         JsonNode request = item.path("request");
         String path = request.path("url").asString()
                 .substring(BASE_URL.length())
-                .replaceFirst("^/lists/.+$", "/lists/{listName}");
+                .replaceFirst("^/lists/[^/]+/recommendations$", "/lists/{listName}/recommendations")
+                .replaceFirst("^/lists/[^/]+$", "/lists/{listName}");
         String token = request.path("auth").path("bearer").path(0).path("value").asString("-")
                 .replaceAll("[{}]", "");
         String statuses = EXPECTED_STATUS.matcher(scriptOf(item)).results()

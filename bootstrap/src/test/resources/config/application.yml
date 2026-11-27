@@ -1,5 +1,14 @@
 
+# The tests never depend on the AI variables of whoever runs them.
+spring:
+  ai:
+    model:
+      chat: none
+
 playlist:
+  ai:
+    # High, so that only the tests of the limit reach it.
+    requests-per-minute: 1000
   security:
     jwt:
       secret: fake-signing-key-only-for-bootstrap-tests

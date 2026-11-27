@@ -7,6 +7,7 @@ import static com.quipux.playlist.infrastructure.in.rest.doc.ApiResponseDocEnum.
 import static com.quipux.playlist.infrastructure.in.rest.doc.ApiResponseDocEnum.INVALID_REQUEST;
 import static com.quipux.playlist.infrastructure.in.rest.doc.ApiResponseDocEnum.PLAYLIST_ALREADY_EXISTS;
 import static com.quipux.playlist.infrastructure.in.rest.doc.ApiResponseDocEnum.PLAYLIST_NOT_FOUND;
+import static com.quipux.playlist.infrastructure.in.rest.doc.ApiResponseDocEnum.TOO_MANY_REQUESTS;
 import static com.quipux.playlist.infrastructure.in.rest.doc.ApiResponseDocEnum.UNEXPECTED_ERROR;
 import static com.quipux.playlist.infrastructure.in.rest.doc.ApiResponseDocEnum.UNSUPPORTED_MEDIA_TYPE;
 
@@ -14,6 +15,7 @@ import com.quipux.playlist.domain.model.enums.Role;
 import com.quipux.playlist.infrastructure.in.rest.AuthController;
 import com.quipux.playlist.infrastructure.in.rest.GenreController;
 import com.quipux.playlist.infrastructure.in.rest.PlaylistController;
+import com.quipux.playlist.infrastructure.in.rest.RecommendationController;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +38,11 @@ public enum ApiOperationDocEnum {
     GET_GENRES(HttpMethod.GET, GenreController.PATH, "Ver los géneros disponibles", List.of(Role.USER, Role.ADMIN),
             HttpStatus.OK, "Géneros y su origen",
             AUTHENTICATION_REQUIRED, ACCESS_DENIED, UNEXPECTED_ERROR),
+    GET_RECOMMENDATIONS(HttpMethod.GET, RecommendationController.PATH, "Ver recomendaciones para una lista",
+            List.of(Role.USER, Role.ADMIN),
+            HttpStatus.OK, "Recomendaciones y su origen",
+            INVALID_REQUEST, AUTHENTICATION_REQUIRED, ACCESS_DENIED, PLAYLIST_NOT_FOUND, TOO_MANY_REQUESTS,
+            UNEXPECTED_ERROR),
     CREATE_PLAYLIST(HttpMethod.POST, PlaylistController.PATH, "Crear una lista", List.of(Role.ADMIN),
             HttpStatus.CREATED, "Lista creada",
             INVALID_REQUEST, AUTHENTICATION_REQUIRED, ACCESS_DENIED, PLAYLIST_ALREADY_EXISTS, CONTENT_TOO_LARGE,

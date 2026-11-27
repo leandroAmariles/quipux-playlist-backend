@@ -73,6 +73,7 @@
                         <configuration>
                             <excludes>
                                 <exclude>**/PlaylistNonBlockingTest.java</exclude>
+                                <exclude>**/RecommendationNonBlockingTest.java</exclude>
                             </excludes>
                         </configuration>
                     </execution>
@@ -84,6 +85,19 @@
                         <configuration>
                             <includes>
                                 <include>**/PlaylistNonBlockingTest.java</include>
+                            </includes>
+                            <argLine>@{argLine} -XX:+AllowRedefinitionToAddDeleteMethods -XX:+EnableDynamicAgentLoading</argLine>
+                        </configuration>
+                    </execution>
+                    <!-- BlockHound can only be installed once in a JVM, so this one has its own too. -->
+                    <execution>
+                        <id>non-blocking-recommendations-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/RecommendationNonBlockingTest.java</include>
                             </includes>
                             <argLine>@{argLine} -XX:+AllowRedefinitionToAddDeleteMethods -XX:+EnableDynamicAgentLoading</argLine>
                         </configuration>

@@ -50,6 +50,10 @@ class PlaylistNonBlockingTest extends SpotifyApiTestSupport {
                 .expectNextCount(1)
                 .thenConsumeWhile(status -> true)
                 .verifyComplete();
+        StepVerifier.create(theDefaultRecommendations("warm-up-recommendations"))
+                .expectNextCount(1)
+                .thenConsumeWhile(status -> true)
+                .verifyComplete();
         BlockHound.install();
     }
 
@@ -93,6 +97,20 @@ class PlaylistNonBlockingTest extends SpotifyApiTestSupport {
         StepVerifier.create(everyGenreOutcome("genres-local"))
                 .expectNext(200, 201, 400)
                 .verifyComplete();
+    }
+
+    @Test
+    void recommendsTheDefaultsWithTheAiDisabledWithoutBlocking() {
+        StepVerifier.create(theDefaultRecommendations("recommendations-disabled"))
+                .expectNext(201, 200, 404)
+                .verifyComplete();
+    }
+
+    private Flux<Integer> theDefaultRecommendations(String name) {
+        return Flux.concat(
+                create(playlist(name, Map.of("titulo", "Uno"))),
+                status(HttpMethod.GET, URI.create(baseUrl() + "/lists/" + name + "/recommendations")),
+                status(HttpMethod.GET, URI.create(baseUrl() + "/lists/" + name + "-unknown/recommendations")));
     }
 
     @Test
