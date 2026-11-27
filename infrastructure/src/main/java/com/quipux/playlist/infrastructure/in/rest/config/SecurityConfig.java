@@ -2,6 +2,7 @@ package com.quipux.playlist.infrastructure.in.rest.config;
 
 import com.quipux.playlist.domain.model.enums.Role;
 import com.quipux.playlist.infrastructure.in.rest.AuthController;
+import com.quipux.playlist.infrastructure.in.rest.GenreController;
 import com.quipux.playlist.infrastructure.in.rest.PlaylistController;
 import com.quipux.playlist.infrastructure.in.rest.security.SecurityErrorHandlers;
 import com.quipux.playlist.infrastructure.in.rest.security.TokenExpiryValidator;
@@ -55,6 +56,8 @@ public class SecurityConfig {
                         .hasAnyRole(Role.USER.name(), Role.ADMIN.name())
                         .pathMatchers(PLAYLIST_PATHS)
                         .hasRole(Role.ADMIN.name())
+                        .pathMatchers(GenreController.PATH)
+                        .hasAnyRole(Role.USER.name(), Role.ADMIN.name())
                         .anyExchange()
                         .authenticated())
                 .exceptionHandling(handling -> handling

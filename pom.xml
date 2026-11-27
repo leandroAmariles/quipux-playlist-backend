@@ -30,6 +30,7 @@
         <archunit.version>1.5.1</archunit.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <blockhound.version>1.0.19.RELEASE</blockhound.version>
+        <wiremock.version>3.13.2</wiremock.version>
         <jacoco.version>0.8.16</jacoco.version>
         <jacoco.line.minimum>0.80</jacoco.line.minimum>
         <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
@@ -42,6 +43,12 @@
                 <groupId>org.mapstruct</groupId>
                 <artifactId>mapstruct</artifactId>
                 <version>${mapstruct.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wiremock</groupId>
+                <artifactId>wiremock-standalone</artifactId>
+                <version>${wiremock.version}</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>com.quipux.playlist</groupId>

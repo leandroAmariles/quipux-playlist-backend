@@ -29,7 +29,9 @@ public final class ProblemDetails {
             case PLAYLIST_ALREADY_EXISTS -> HttpStatus.CONFLICT;
             case INVALID_CREDENTIALS, AUTHENTICATION_REQUIRED -> HttpStatus.UNAUTHORIZED;
             case ACCESS_DENIED -> HttpStatus.FORBIDDEN;
-            case INVALID_SECURITY_CONFIGURATION, UNEXPECTED_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
+            case GENRE_PROVIDER_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
+            case INVALID_SECURITY_CONFIGURATION, INVALID_GENRE_CONFIGURATION, UNEXPECTED_ERROR ->
+                    HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }
 }

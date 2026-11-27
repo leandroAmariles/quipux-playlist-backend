@@ -20,6 +20,13 @@ public record Playlist(String name, String description, List<Song> songs) {
         songs = copyOf(songs);
     }
 
+    public List<String> declaredGenres() {
+        return songs.stream()
+                .map(Song::genre)
+                .filter(genre -> genre != null && !genre.isBlank())
+                .toList();
+    }
+
     private static void requireValidName(String name) {
         if (name == null || name.isBlank()) {
             throw new InvalidPlaylistException(ErrorMessageEnum.PLAYLIST_NAME_REQUIRED);
