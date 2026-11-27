@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.0](https://github.com/leandroAmariles/quipux-playlist-backend/compare/v0.1.1...v0.2.0) (2026-11-27)
+
+
+### Features
+
+* **HU-12:** AI recommendations for a playlist with a default fallback ([f75df79](https://github.com/leandroAmariles/quipux-playlist-backend/commit/f75df79d1f6c647895abf86967cbb1803a9d2b33))
+
+
+### Bug Fixes
+
+* **HU-12:** do not start with a request quota below one ([413f739](https://github.com/leandroAmariles/quipux-playlist-backend/commit/413f7397b475d7939b392ae9124097dffee625d1))
+
+
+### Documentation
+
+* **HU-12:** record the Qodana fix in the AI log ([0bcd69e](https://github.com/leandroAmariles/quipux-playlist-backend/commit/0bcd69e4313609aa1d0534b701f138518b4bc9e2))
+
 ## [0.1.1](https://github.com/leandroAmariles/quipux-playlist-backend/compare/v0.1.0...v0.1.1) (2026-11-27)
 
 
