@@ -1,0 +1,23 @@
+[project]
+name = "playlist-recommendations-evaluation"
+version = "0.0.0"
+description = "Evaluación fuera de línea de las recomendaciones con RAGAS"
+requires-python = "==3.12.*"
+dependencies = [
+    "ragas==0.4.4",
+    # El juez y los embeddings se usan por sus clientes: OpenAI hacia LiteLLM e instructor para el esquema.
+    "openai>=2",
+    "instructor>=1.18,<2",
+    # ragas 0.4.4 importa un módulo que langchain-community 0.4 ya no tiene.
+    "langchain-community>=0.3,<0.4",
+]
+
+[dependency-groups]
+dev = ["pytest>=8,<10"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
