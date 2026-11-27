@@ -152,6 +152,13 @@ El README del backend es el punto de entrada y enlaza los otros dos.
 
 springdoc-openapi para WebFlux, con el esquema Bearer JWT declarado.
 
+**Concreción (2026-11-26, HU-06):**
+- springdoc 3.2.0. La 3.2.1 se compila contra Spring Boot 4.2 y se usa la línea 4.1.
+- El contrato (`/v3/api-docs`) y Swagger UI se abren sin token. El resto sigue protegido.
+- Generar el contrato y servir la interfaz hace lecturas bloqueantes. Un filtro ejecuta solo esas rutas en
+  `boundedElastic`, incluidas `/v3/api-docs.yaml` y `/webjars/**`, que exigen token.
+- swagger-core añade Jackson 2 como dependencia. La API sigue serializando con Jackson 3.
+
 ### 5. Redis como caché de géneros
 
 - Se cachea la respuesta de Spotify con TTL configurable (inicial: 24 h), mediante el cliente reactivo.

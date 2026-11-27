@@ -10,7 +10,13 @@ spring:
 
 server:
   port: 8080
+
+springdoc:
+  default-produces-media-type: application/json
+
 playlist:
+  openapi:
+    version: "@project.version@"
   security:
     jwt:
       secret: ${JWT_SECRET:}

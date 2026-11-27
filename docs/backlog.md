@@ -140,19 +140,21 @@ Basado en el ADR-0001. Se prioriza la calidad sobre el plazo: las horas (16 en t
 **Como** evaluador, **quiero** un cliente configurado, el contrato documentado e instrucciones claras, **para** probar el proyecto sin ayuda.
 
 **Colección de Postman**
-- [ ] Incluye todos los endpoints y los casos de error principales.
-- [ ] El token del login se guarda en una variable.
-- [ ] No contiene secretos reales.
+- [x] Incluye todos los endpoints y los casos de error principales.
+- [x] El token del login se guarda en una variable.
+- [x] No contiene secretos reales.
+- [x] Cada petición comprueba su código y la colección se puede ejecutar completa y repetida.
 
 **OpenAPI**
-- [ ] Documenta endpoints, esquemas y códigos de respuesta.
-- [ ] Permite autorizar con Bearer JWT.
+- [x] Documenta endpoints, esquemas y códigos de respuesta.
+- [x] Permite autorizar con Bearer JWT.
+- [x] Una prueba falla si el contrato publicado difiere de las operaciones y códigos acordados.
 
 **README**
-- [ ] Explica requisitos, variables de entorno, ejecución y pruebas.
-- [ ] Justifica **R2DBC en lugar de JPA** de forma visible.
-- [ ] Explica la limitación de Spotify.
-- [ ] Incluye los ADR y los enlaces a los tres repositorios.
+- [x] Explica requisitos, variables de entorno, ejecución y pruebas.
+- [x] Justifica **R2DBC en lugar de JPA** de forma visible.
+- [x] Explica la limitación de Spotify.
+- [x] Incluye los ADR y los enlaces a los tres repositorios.
 
 ## Épica 5: Contenedores, CI/CD y GitOps
 
