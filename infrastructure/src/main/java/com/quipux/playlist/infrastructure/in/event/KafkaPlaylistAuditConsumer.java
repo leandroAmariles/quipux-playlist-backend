@@ -4,6 +4,7 @@ import com.quipux.playlist.domain.model.enums.ErrorMessageEnum;
 import com.quipux.playlist.domain.model.enums.PlaylistEventType;
 import com.quipux.playlist.infrastructure.event.dto.PlaylistEventDto;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +78,11 @@ public class KafkaPlaylistAuditConsumer {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("blank occurredAt");
         }
-        return Instant.parse(value);
+        try {
+            return Instant.parse(value);
+        } catch (DateTimeParseException exception) {
+            throw new IllegalArgumentException("invalid occurredAt", exception);
+        }
     }
 
     private static String reasonOf(Throwable error) {
