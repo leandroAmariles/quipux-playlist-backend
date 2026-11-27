@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Ticker;
 import com.quipux.playlist.application.port.out.RequestQuotaPort;
 import com.quipux.playlist.domain.model.QuotaDecision;
+import com.quipux.playlist.domain.model.enums.ErrorMessageEnum;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -26,6 +27,9 @@ public class SlidingWindowRequestQuotaAdapter implements RequestQuotaPort {
     private final Cache<String, Deque<Long>> requests;
 
     public SlidingWindowRequestQuotaAdapter(int limit, Duration window, Ticker ticker) {
+        if (limit < 1) {
+            throw new IllegalStateException(ErrorMessageEnum.INVALID_REQUEST_QUOTA.withCode(limit));
+        }
         this.limit = limit;
         this.window = window.toNanos();
         this.ticker = ticker;
@@ -53,14 +57,15 @@ public class SlidingWindowRequestQuotaAdapter implements RequestQuotaPort {
     }
 
     private QuotaDecision count(Deque<Long> recent, long now) {
-        while (!recent.isEmpty() && now - recent.peekFirst() >= window) {
+        while (!recent.isEmpty() && now - recent.getFirst() >= window) {
             recent.removeFirst();
         }
         if (recent.size() < limit) {
             recent.addLast(now);
             return QuotaDecision.permit();
         }
-        long remaining = window - (now - recent.peekFirst());
+        // The limit is at least one, so a full quota always holds an oldest request.
+        long remaining = window - (now - recent.getFirst());
         // Whole seconds, rounded up, so that waiting them is always enough.
         return QuotaDecision.reject(Duration.ofSeconds(Math.max(1, Math.ceilDiv(remaining, NANOS_PER_SECOND))));
     }

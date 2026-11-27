@@ -1,9 +1,13 @@
 package com.quipux.playlist.infrastructure.out.recommendation;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.quipux.playlist.domain.model.QuotaDecision;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
@@ -86,6 +90,14 @@ class SlidingWindowRequestQuotaAdapterTest {
         StepVerifier.create(decisions.filter(QuotaDecision::allowed).count())
                 .expectNext(10L)
                 .verifyComplete();
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, -1})
+    void doesNotStartWithALimitThatAllowsNoRequest(int limit) {
+        assertThatThrownBy(() -> new SlidingWindowRequestQuotaAdapter(limit, Duration.ofMinutes(1), now::get))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("RECOMMENDATION_ERROR_003");
     }
 
     private void consume(String user, int times) {

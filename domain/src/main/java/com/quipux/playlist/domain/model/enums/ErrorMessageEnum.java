@@ -67,6 +67,8 @@ public enum ErrorMessageEnum {
             "The playlist has no songs"),
     RECOMMENDATION_FALLBACK(ResponseCodeEnum.RECOMMENDATION_PROVIDER_UNAVAILABLE,
             "Using the default recommendations: %s"),
+    INVALID_REQUEST_QUOTA(ResponseCodeEnum.INVALID_RECOMMENDATION_CONFIGURATION,
+            "The requests per minute must be at least 1, not %d"),
     DEFAULT_RECOMMENDATIONS_INVALID(ResponseCodeEnum.INVALID_RECOMMENDATION_CONFIGURATION,
             "The default recommendations are not valid: %s"),
     PROMPT_UNAVAILABLE(ResponseCodeEnum.INVALID_RECOMMENDATION_CONFIGURATION,
