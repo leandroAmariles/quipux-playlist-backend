@@ -1,7 +1,7 @@
 # quipux-playlist-backend
 
-API REST reactiva para crear, consultar y borrar listas de reproducción de música, con autenticación JWT, roles y
-géneros desde Spotify. Tiene una [aplicación web](https://github.com/leandroAmariles/quipux-playlist-frontend) en otro
+API REST reactiva para crear, consultar y borrar listas de reproducción de música, con autenticación JWT, roles,
+géneros desde Spotify y recomendaciones con IA. Tiene una [aplicación web](https://github.com/leandroAmariles/quipux-playlist-frontend) en otro
 repositorio, y este README es el punto de entrada del proyecto.
 
 Está hecho con Java 21, Spring Boot 4, WebFlux, R2DBC y una base H2 en memoria.
@@ -56,6 +56,11 @@ No hace falta instalar Maven. Todos los comandos se ejecutan desde la raíz de e
 | `SPOTIFY_ACCOUNTS_BASE_URL` | no | `https://accounts.spotify.com` | dirección donde se pide el token de Spotify |
 | `SPOTIFY_API_BASE_URL` | no | `https://api.spotify.com` | dirección donde se consultan los géneros |
 | `SPOTIFY_TIMEOUT` | no | `3s` | tiempo máximo para obtener los géneros |
+| `AI_PROVIDER` | no | `none` | `openai` activa las recomendaciones con IA a través de LiteLLM |
+| `AI_API_KEY` | no | — | clave de LiteLLM; sin ella no se llama al modelo |
+| `AI_BASE_URL` | no | `http://localhost:4000/v1` | dirección de LiteLLM, terminada en `/v1` |
+| `AI_CHAT_MODEL` | no | `recomendador-chat` | alias del modelo de chat |
+| `AI_TIMEOUT` | no | `30s` | tiempo máximo total de la llamada al modelo |
 
 Las tres obligatorias no tienen valor por defecto para que no haya secretos en el repositorio: sin ellas la aplicación
 no arranca. Las contraseñas las eliges tú.
@@ -199,7 +204,7 @@ Se abren sin token. Para probar una operación protegida:
 
 ## Colección de Postman
 
-[`postman/quipux-playlist.postman_collection.json`](postman/quipux-playlist.postman_collection.json) recorre las seis
+[`postman/quipux-playlist.postman_collection.json`](postman/quipux-playlist.postman_collection.json) recorre las siete
 operaciones y los errores principales, y comprueba cada código de respuesta.
 
 1. En Postman, **Import** y elige el archivo.
@@ -230,6 +235,7 @@ API en `http://localhost:8080`.
 | `GET /lists` | `USER`, `ADMIN` | `200` |
 | `GET /lists/{listName}` | `USER`, `ADMIN` | `200`; `400`, `404` |
 | `GET /genres` | `USER`, `ADMIN` | `200` |
+| `GET /lists/{listName}/recommendations` | `USER`, `ADMIN` | `200`; `400`, `404`, `429` |
 | `POST /lists` | `ADMIN` | `201` con `Location`; `400`, `409`, `413`, `415` |
 | `DELETE /lists/{listName}` | `ADMIN` | `204`; `400`, `404` |
 
@@ -241,6 +247,87 @@ Los nombres de lista no admiten `/`, `\`, caracteres de control, `.` ni `..`, ni
 
 `GET /genres` devuelve `generos` y su `origen` (`SPOTIFY` o `LOCAL`). Al crear una lista, cada `genero` debe estar en
 ese catálogo, sin distinguir mayúsculas.
+
+## Recomendaciones con IA
+
+`GET /lists/{listName}/recommendations` sugiere hasta 5 canciones según las de la lista.
+
+```json
+{
+  "lista": "Lista 1",
+  "origen": "IA",
+  "versionPrompt": "v1",
+  "recomendaciones": [
+    { "idCatalogo": "", "titulo": "...", "artista": "...", "genero": "rock", "motivo": "..." }
+  ]
+}
+```
+
+- `origen` es `IA` cuando responde el modelo y `RESPALDO` cuando se usa la
+  [lista por defecto](infrastructure/src/main/resources/default-recommendations.properties).
+- **Las sugerencias no están verificadas:** el modelo puede inventar canciones o equivocar el artista. `idCatalogo` va
+  vacío hasta que exista un catálogo (HU-13). Los textos los escribe un modelo: trátalos como texto, no como HTML.
+- **Desactivada por defecto.** La aplicación arranca y las pruebas pasan sin modelos ni clave; entonces responde
+  siempre con `RESPALDO`.
+
+### Activarla
+
+Lo más sencillo es la composición de
+[quipux-playlist-infra](https://github.com/leandroAmariles/quipux-playlist-infra#recomendaciones-con-ia-modelos-locales),
+que levanta Ollama y LiteLLM, descarga los modelos y explica `AI_API_KEY`, la GPU, la memoria de Docker, los
+requisitos de hardware y las latencias medidas.
+
+Sin esa composición hace falta un LiteLLM accesible con el alias `recomendador-chat`:
+
+```bash
+export AI_PROVIDER=openai
+export AI_API_KEY="<clave de LiteLLM>"
+export AI_BASE_URL=http://localhost:4000/v1
+```
+
+Con `AI_PROVIDER=openai` y sin `AI_API_KEY`, la aplicación arranca, lo avisa en el registro y usa el respaldo. No
+definas `OPENAI_LOG`: el registro de depuración de la librería puede escribir el prompt.
+
+### Cuándo se usa el respaldo
+
+Lista vacía, IA desactivada, más de `AI_TIMEOUT` sin respuesta, error de conexión o HTTP, respuesta vacía o que no es
+el JSON esperado, ninguna sugerencia válida, demasiadas llamadas simultáneas o cortacircuitos abierto. Siempre con
+`200`; una lista inexistente sigue siendo `404` y un fallo de la base de datos, `500`. Cada petición al endpoint envía
+como máximo una petición al modelo, sin reintentos.
+
+### Límites
+
+| Límite | Valor | Propiedad `playlist.ai.` |
+|---|---|---|
+| Peticiones por usuario y minuto; después, `429` con `Retry-After` | 10 | `requests-per-minute` |
+| Llamadas simultáneas al modelo; no se encolan | 2 | `max-concurrent-calls` |
+| Canciones enviadas, las primeras | 50 | `max-songs` |
+| Caracteres por campo enviado | 100 | `max-field-length` |
+| Tokens de la respuesta | 600 | `max-output-tokens` |
+| Respuestas de la IA guardadas | 500, durante 24 h | `cache.max-entries`, `cache.ttl` |
+| Cortacircuitos: fallos que lo abren y espera | 50 % de 10 (mínimo 5), 30 s | `circuit-breaker.*` |
+
+La caché y el contador de peticiones viven en memoria: se pierden al reiniciar y no se comparten entre réplicas.
+
+El prompt está en [`prompts/recommendations/v1.txt`](infrastructure/src/main/resources/prompts/recommendations/v1.txt).
+La lista por defecto necesita al menos 5 canciones completas con géneros de la lista local: si cambias
+`playlist.genres.local-file`, revisa también `playlist.ai.default-recommendations-file`, o la aplicación no arrancará.
+
+## Autoría IA
+
+Esta sección describe HU-12 (recomendaciones con IA). El registro completo está en [`AI-LOG.md`](AI-LOG.md).
+
+| Parte | Quién |
+|---|---|
+| Historia, ADR-0002 y criterios de aceptación | documentos de partida |
+| Especificación, plan, tareas, código, pruebas, composición de infra y esta documentación | asistente de IA (Claude Code, modelo Claude Sonnet 5.5) |
+| Decisiones durante la implementación: proceder con el checklist incompleto, generar el cliente con un subagente, aceptar el aviso ZDI-26-1031, plantilla de `AI-LOG.md` y reutilizar los modelos ya descargados | la persona usuaria |
+
+- El cliente se generó primero con un asistente aislado de la investigación (un subagente nuevo del mismo modelo). Su
+  respuesta se conserva sin cambios en `AI-LOG.md`. **No compilaba** y, una vez corregido lo mínimo para compilar,
+  incumplía varios requisitos; la revisión y los cambios también están allí.
+- La revisión crítica la hizo el asistente, apoyada en ejecuciones. **A la fecha de esta entrega ninguna persona ha
+  revisado el código ni ha añadido pruebas a mano.**
 
 ## Limitación de Spotify
 
