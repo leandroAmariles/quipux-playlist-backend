@@ -1,0 +1,153 @@
+# HU-13: casos de prueba de la especificacion (spec.md). Ejecutar de arriba abajo.
+#
+# Parte A: IA y catalogo activados e indexados (quipux-playlist-infra, compose.ai.yaml).
+# Parte B: degradaciones. Antes de cada caso se detiene o cambia un servicio; el comando va en el comentario, con
+#          DC = docker compose -p quipux-ia -f compose.yaml -f compose.ai.yaml
+# Parte C: composicion base sin compose.ai.yaml (IA desactivada).
+#
+# Hay un limite de 10 peticiones de recomendaciones por usuario y minuto.
+#
+# Not covered here (se comprueban en las pruebas automaticas o a mano):
+#   US1-1 a US1-5, FR-001 a FR-009, FR-032 a FR-034  catalogo, indexacion y composicion: quickstart.md 2 a 4,
+#          FileSongCatalogTest, PgVectorCatalogIndexingTest, CatalogIndexApplicationTest
+#   US2-2, US2-4 a US2-7, FR-018 a FR-021  dependen de lo que responda el modelo: RecommendationsAiApiTest
+#   US3-2, US3-3, US3-5, US3-6, FR-026, FR-027  RecommendationEmbeddingsFailureApiTest, RecommendationFailureApiTest,
+#          RecommendationLimitsApiTest
+#   US3-8, FR-029 error de H2: GetRecommendationsUseCaseTest
+#   US4-2  otra version del catalogo: GetRecommendationsUseCaseTest, RecommendationCacheKeyTest; quickstart.md 4
+#   FR-010 a FR-017, FR-025, FR-030, FR-031, FR-035 a FR-040  pruebas automaticas, README y AI-LOG
+
+@baseUrl = http://localhost:8080
+# Los valores de DEMO_USER_PASSWORD y DEMO_ADMIN_PASSWORD. No guardarlos en el repositorio.
+@userPassword = <contrasena-user>
+@adminPassword = <contrasena-admin>
+
+### Preparacion: token de user — expects 200
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "user", "password": "{{userPassword}}"}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.global.set("userToken", response.body.accessToken);
+%}
+
+### Preparacion: token de admin — expects 200
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": "{{adminPassword}}"}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.global.set("adminToken", response.body.accessToken);
+%}
+
+### Preparacion: borrar la lista si existe — expects 204 o 404
+DELETE {{baseUrl}}/lists/hu13-jazz
+Authorization: Bearer {{adminToken}}
+
+### Preparacion: lista con una cancion del catalogo — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu13-jazz", "canciones": [{"titulo": "Take Five", "artista": "The Dave Brubeck Quartet",
+  "album": "Time Out", "anno": "1959", "genero": "jazz"}]}
+
+### US2-1, US2-3, FR-022 — expects 200, origen IA, versionPrompt v2, 1 a 5 con idCatalogo y sin la cancion de la lista
+GET {{baseUrl}}/lists/hu13-jazz/recommendations
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.test("origen IA y v2", () => client.assert(response.body.origen === "IA" && response.body.versionPrompt === "v2"));
+client.test("de 1 a 5 con idCatalogo", () => client.assert(response.body.recomendaciones.length >= 1
+    && response.body.recomendaciones.length <= 5
+    && response.body.recomendaciones.every(song => song.idCatalogo !== "")));
+client.test("sin la cancion de la lista", () => client.assert(
+    response.body.recomendaciones.every(song => song.titulo.toLowerCase() !== "take five")));
+%}
+
+### US4-1 — expects 200 con la misma respuesta (guardada; el registro de api dice cached=true)
+GET {{baseUrl}}/lists/hu13-jazz/recommendations
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("origen IA", () => client.assert(response.status === 200 && response.body.origen === "IA"));
+%}
+
+### Edge case "lista que no existe" (US3-8, FR-029) — expects 404
+GET {{baseUrl}}/lists/hu13-no-existe/recommendations
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("status 404", () => client.assert(response.status === 404));
+%}
+
+### Preparacion US3-7: lista vacia — expects 201 o 409
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu13-vacia", "canciones": []}
+
+### US3-7 lista sin canciones — expects 200 RESPALDO sin idCatalogo
+GET {{baseUrl}}/lists/hu13-vacia/recommendations
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("origen RESPALDO", () => client.assert(response.status === 200 && response.body.origen === "RESPALDO"
+    && response.body.versionPrompt === ""
+    && response.body.recomendaciones.every(song => song.idCatalogo === "")));
+%}
+
+### Parte B. US3-1: en api AI_CHAT_MODEL=no-existe y `$DC up -d api`; repetir tokens y creacion — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu13-similitud", "canciones": [{"titulo": "So What", "artista": "Miles Davis", "genero": "jazz"}]}
+
+### US3-1, FR-022, FR-024 — expects 200 SIMILITUD, versionPrompt vacio, motivo fijo
+GET {{baseUrl}}/lists/hu13-similitud/recommendations
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("origen SIMILITUD", () => client.assert(response.status === 200 && response.body.origen === "SIMILITUD"
+    && response.body.versionPrompt === ""));
+client.test("motivo fijo y con idCatalogo", () => client.assert(response.body.recomendaciones.every(
+    song => song.idCatalogo !== "" && song.motivo === "Similar a las canciones de la lista")));
+%}
+
+### US1-6, US3-4: `$DC stop catalog-db`; lista nueva — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "hu13-sin-catalogo", "canciones": [{"titulo": "Naima", "artista": "John Coltrane", "genero": "jazz"}]}
+
+### US3-4, SC-003 — expects 200 RESPALDO en menos de 6 s
+GET {{baseUrl}}/lists/hu13-sin-catalogo/recommendations
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("origen RESPALDO", () => client.assert(response.status === 200 && response.body.origen === "RESPALDO"));
+%}
+
+### US1-6, FR-016 el resto de la API funciona con el catalogo detenido — expects 200
+GET {{baseUrl}}/lists
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+%}
+
+### Parte C. US3-7 IA desactivada: composicion base, repetir tokens y la lista hu13-jazz — expects 200 RESPALDO
+GET {{baseUrl}}/lists/hu13-jazz/recommendations
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("origen RESPALDO", () => client.assert(response.status === 200 && response.body.origen === "RESPALDO"));
+%}
