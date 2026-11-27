@@ -107,32 +107,32 @@ Basado en el ADR-0001. Se prioriza la calidad sobre el plazo: las horas (16 en t
 **Como** usuario, **quiero** una web para acceder, explorar las listas y, como administrador, gestionarlas, **para** no depender de un cliente REST.
 
 **Login**
-- [ ] El login correcto lleva al listado.
-- [ ] El error de credenciales se muestra en el formulario.
-- [ ] Un interceptor añade el JWT y un `401` redirige al login.
-- [ ] La web llega a la API mediante el proxy de desarrollo, sin configurar CORS.
+- [x] El login correcto lleva al listado.
+- [x] El error de credenciales se muestra en el formulario.
+- [x] Un interceptor añade el JWT y un `401` redirige al login.
+- [x] La web llega a la API mediante el proxy de desarrollo, sin configurar CORS.
 
 **Ver listas**
-- [ ] Hay listado y vista de detalle.
-- [ ] Se muestran los estados de carga, vacío y error.
+- [x] Hay listado y vista de detalle.
+- [x] Se muestran los estados de carga, vacío y error.
 
 **Crear lista**
-- [ ] Permite añadir y quitar canciones.
-- [ ] Valida el nombre obligatorio.
-- [ ] El género se elige de `GET /genres`.
-- [ ] Muestra los errores `400` y `409`.
-- [ ] La opción de crear no aparece para el rol `USER`, y su ruta queda bloqueada.
+- [x] Permite añadir y quitar canciones.
+- [x] Valida el nombre obligatorio.
+- [x] El género se elige de `GET /genres`.
+- [x] Muestra los errores `400` y `409`.
+- [x] La opción de crear no aparece para el rol `USER`, y su ruta queda bloqueada.
 
 **Borrar lista**
-- [ ] Pide confirmación y actualiza el listado.
-- [ ] La opción no aparece para el rol `USER`.
+- [x] Pide confirmación y actualiza el listado.
+- [x] La opción no aparece para el rol `USER`.
 
 **Pruebas unitarias**
-- [ ] El interceptor añade el JWT y un `401` redirige al login.
-- [ ] El formulario de creación valida el nombre, añade y quita canciones y muestra `400` y `409`.
-- [ ] El rol `USER` no ve las opciones de crear ni borrar.
-- [ ] Los servicios se prueban con HTTP simulado.
-- [ ] Las pruebas se ejecutan con un solo comando, sin modo interactivo.
+- [x] El interceptor añade el JWT y un `401` redirige al login.
+- [x] El formulario de creación valida el nombre, añade y quita canciones y muestra `400` y `409`.
+- [x] El rol `USER` no ve las opciones de crear ni borrar.
+- [x] Los servicios se prueban con HTTP simulado.
+- [x] Las pruebas se ejecutan con un solo comando, sin modo interactivo.
 
 ## Épica 4: Entrega
 
