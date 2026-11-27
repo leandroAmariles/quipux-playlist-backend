@@ -1,5 +1,6 @@
 **
 !pom.xml
+!.mvn/mirror-settings.xml
 !domain/pom.xml
 !domain/src
 !application/pom.xml

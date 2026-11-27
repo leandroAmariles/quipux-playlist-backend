@@ -2,7 +2,7 @@ FROM maven:3.9.11-eclipse-temurin-21 AS build
 WORKDIR /build
 COPY . .
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn --batch-mode --no-transfer-progress package \
+    mvn --batch-mode --no-transfer-progress --settings .mvn/mirror-settings.xml package \
     -Dmaven.test.skip=true -Dcheckstyle.skip=true -Djacoco.skip=true
 
 FROM eclipse-temurin:21.0.13.1_2-jre-alpine-3.24

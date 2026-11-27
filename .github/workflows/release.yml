@@ -41,7 +41,7 @@ jobs:
         with:
           ref: ${{ needs.release-please.outputs.tag_name }}
           persist-credentials: false
-      # Maven Central throttles shared runners (HTTP 429). The Maven cache mount keeps what each attempt downloaded.
+      # A download can fail for a moment. The Maven cache mount keeps what each attempt downloaded.
       - run: |
           for attempt in 1 2 3; do
             docker build --platform linux/amd64 \
