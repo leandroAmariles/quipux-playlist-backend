@@ -5,6 +5,7 @@ import com.quipux.playlist.infrastructure.in.rest.AuthController;
 import com.quipux.playlist.infrastructure.in.rest.GenreController;
 import com.quipux.playlist.infrastructure.in.rest.PlaylistController;
 import com.quipux.playlist.infrastructure.in.rest.doc.DocumentationPath;
+import com.quipux.playlist.infrastructure.in.rest.health.HealthPath;
 import com.quipux.playlist.infrastructure.in.rest.security.SecurityErrorHandlers;
 import com.quipux.playlist.infrastructure.in.rest.security.TokenExpiryValidator;
 import com.quipux.playlist.infrastructure.security.SigningKey;
@@ -48,6 +49,15 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
+    SecurityWebFilterChain healthProbeSecurityFilterChain(ServerHttpSecurity http) {
+        return stateless(http)
+                .securityMatcher(ServerWebExchangeMatchers.pathMatchers(HttpMethod.GET, HealthPath.publicPatterns()))
+                .authorizeExchange(exchanges -> exchanges.anyExchange().permitAll())
+                .build();
+    }
+
+    @Bean
+    @Order(3)
     SecurityWebFilterChain apiSecurityFilterChain(ServerHttpSecurity http, SecurityErrorHandlers errorHandlers) {
         return stateless(http)
                 .authorizeExchange(exchanges -> exchanges
