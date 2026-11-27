@@ -2,30 +2,43 @@
 
 API REST reactiva para gestionar listas de reproducción de música.
 
-**En construcción:** están las operaciones sobre listas. Faltan autenticación, géneros y la aplicación web.
-
-> **Sin autenticación todavía:** hasta HU-03 cualquiera puede crear y borrar listas. No exponer en una red pública.
+**En construcción:** están las operaciones sobre listas y la autenticación. Faltan los géneros y la aplicación web.
 
 ## API
 
-| Método y ruta | Respuestas |
-|---|---|
-| `POST /lists` | `201` con `Location`; `400`, `409`, `413`, `415` |
-| `GET /lists` | `200` |
-| `GET /lists/{listName}` | `200`; `404` |
-| `DELETE /lists/{listName}` | `204`; `404` |
+| Método y ruta | Quién | Respuestas |
+|---|---|---|
+| `POST /auth/login` | cualquiera | `200` con el token; `400`, `401`, `415` |
+| `GET /lists` | `USER`, `ADMIN` | `200` |
+| `GET /lists/{listName}` | `USER`, `ADMIN` | `200`; `404` |
+| `POST /lists` | `ADMIN` | `201` con `Location`; `400`, `409`, `413`, `415` |
+| `DELETE /lists/{listName}` | `ADMIN` | `204`; `404` |
+
+Salvo el inicio de sesión, todo exige `Authorization: Bearer <token>`: sin un token válido y vigente la respuesta es
+`401`, y sin el rol necesario, `403`. El token dura 30 minutos.
+
+Hay dos usuarios de demostración, `user` (rol `USER`) y `admin` (rol `ADMIN`). Sus contraseñas se eligen al arrancar.
 
 ```bash
-curl -i -X POST http://localhost:8080/lists -H 'Content-Type: application/json' \
+TOKEN=$(curl -s -X POST http://localhost:8080/auth/login -H 'Content-Type: application/json' \
+  -d "{\"username\":\"admin\",\"password\":\"$DEMO_ADMIN_PASSWORD\"}" | sed 's/.*"accessToken":"\([^"]*\)".*/\1/')
+
+curl -i -X POST http://localhost:8080/lists -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"nombre":"Mis favoritas","descripcion":"Demo","canciones":[{"titulo":"Uno","anno":"1999"}]}'
-curl -i http://localhost:8080/lists/Mis%20favoritas
+curl -i http://localhost:8080/lists/Mis%20favoritas -H "Authorization: Bearer $TOKEN"
 ```
 
-Detalle en el [contrato REST](specs/02-playlist-management/contracts/rest-api.md) y casos de prueba en
-[requests.http](specs/02-playlist-management/requests.http).
+Los nombres de lista no admiten `/`, `\`, caracteres de control, `.` ni `..`, ni contener `%2F`, `%5C`, `%00`, `%0A`,
+`%0D` (en mayúsculas o minúsculas) o los separadores Unicode U+2028 y U+2029.
+
+Detalle en los contratos de [autenticación](specs/03-authentication-authorization/contracts/rest-api.md) y de
+[listas](specs/02-playlist-management/contracts/rest-api.md), y casos de prueba en los `requests.http` de
+[autenticación](specs/03-authentication-authorization/requests.http) y
+[listas](specs/02-playlist-management/requests.http).
 
 **Sobre el modelo no bloqueante:** la API es reactiva de extremo a extremo, pero el controlador `r2dbc-h2` ejecuta
-las consultas en el mismo hilo que las pide. Con la base en memoria son operaciones cortas.
+las consultas en el mismo hilo que las pide. Con la base en memoria son operaciones cortas. BCrypt, que es lento a
+propósito, se ejecuta en un hilo aparte.
 
 ## Repositorios
 
@@ -48,18 +61,35 @@ las consultas en el mismo hilo que las pide. Con la base en memoria son operacio
 
 No hace falta instalar Maven.
 
+## Variables de entorno
+
+La aplicación no arranca sin las tres primeras. No tienen valor por defecto, para que no haya secretos en el
+repositorio.
+
+| Variable | Contenido |
+|---|---|
+| `JWT_SECRET` | clave que firma los tokens, de 32 bytes como mínimo |
+| `DEMO_USER_PASSWORD` | contraseña del usuario `user`, de 1 a 72 bytes |
+| `DEMO_ADMIN_PASSWORD` | contraseña del usuario `admin`, de 1 a 72 bytes |
+| `JWT_TTL` | opcional: vigencia del token (por defecto `30m`) |
+
 ## Comandos
 
 En Windows se usa `mvnw.cmd` en lugar de `./mvnw`.
 
 ```bash
-# Compila, prueba y aplica los controles de calidad
+# Compila, prueba y aplica los controles de calidad. No necesita variables de entorno
 ./mvnw verify
 
 # Empaqueta y arranca en el puerto 8080
 ./mvnw package
+export JWT_SECRET="$(openssl rand -base64 48)"
+export DEMO_USER_PASSWORD="<elige una>"
+export DEMO_ADMIN_PASSWORD="<elige otra>"
 java -jar bootstrap/target/playlist-bootstrap-0.1.0-SNAPSHOT.jar
 ```
+
+En PowerShell las variables se definen con `$env:JWT_SECRET = "..."`.
 
 Si el puerto 8080 está ocupado, se cambia con `--server.port=18080` o con la variable `SERVER_PORT`.
 
@@ -67,6 +97,8 @@ La base de datos es H2 en memoria: no hay que preparar nada y los datos se pierd
 
 `verify` falla ante una violación de Checkstyle, una dependencia prohibida entre capas o menos del 80 % de líneas
 cubiertas en un módulo.
+
+No hay límite de intentos de inicio de sesión: la aplicación no debe exponerse en una red pública.
 
 ## Estructura
 

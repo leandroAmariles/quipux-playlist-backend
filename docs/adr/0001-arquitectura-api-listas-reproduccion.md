@@ -182,6 +182,9 @@ springdoc-openapi para WebFlux, con el esquema Bearer JWT declarado.
 - `201` incluye la cabecera `Location` con el nombre codificado para URL.
 - `anno` se mantiene como texto, igual que en el contrato.
 - Errores con `ProblemDetail` (RFC 9457).
+- **Cambio (2026-11-26, HU-03):** el nombre no puede contener, sin distinguir mayúsculas, `%2F`, `%5C`, `%00`, `%0A` o
+  `%0D`, ni los separadores U+2028 y U+2029. Aceptarlos obligaba a desactivar diez reglas del filtro de rutas de
+  Spring Security.
 
 ### 9. Seguridad
 
@@ -189,6 +192,9 @@ springdoc-openapi para WebFlux, con el esquema Bearer JWT declarado.
 - Usuarios de demostración en H2 con contraseñas BCrypt.
 - Rol `USER`: consultar. Rol `ADMIN`: además crear y borrar.
 - Spring Security reactivo con validación de JWT. Clave de firma por variable de entorno.
+- **Concreción (2026-11-26, HU-03):** firma HS256 y vigencia de 30 minutos. Las contraseñas de los usuarios de
+  demostración también vienen del entorno. Del filtro de rutas solo se relajan dos reglas, para admitir `;` y `%` en
+  los nombres. Sin límite de intentos de inicio de sesión ni revocación de tokens.
 
 ### 10. Géneros desde Spotify (riesgo alto)
 

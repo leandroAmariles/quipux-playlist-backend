@@ -1,0 +1,338 @@
+# HU-03: casos de prueba de la especificacion (spec.md). Ejecutar de arriba abajo con la aplicacion recien arrancada.
+#
+# Not covered here (se comprueban en las pruebas automaticas):
+#   US2-3, FR-003  token vencido y limite exacto: TokenRequiredApiTest, TokenExpiryValidatorTest
+#   US2-2          token firmado con otra clave y token sin exp: TokenRequiredApiTest
+#   Edge Token sin rol reconocido: RoleAccessApiTest
+#   FR-006, FR-007 usuarios de demostracion y resumenes BCrypt: AuthLoginApiTest, UserPersistenceAdapterTest
+#   FR-008, FR-009 arranque sin clave o contrasenas: StartupConfigurationTest
+#   FR-015 sin sesion ni cookies: AuthLoginApiTest, TokenRequiredApiTest
+#   FR-019 sin bloqueos: PlaylistNonBlockingTest
+#   SC-005 tiempo del inicio de sesion: PlaylistPerformanceTest
+
+@baseUrl = http://localhost:8080
+# Los valores de DEMO_USER_PASSWORD y DEMO_ADMIN_PASSWORD. No guardarlos en el repositorio.
+@userPassword = <contrasena-user>
+@adminPassword = <contrasena-admin>
+
+### US1-1 / FR-001, FR-002, FR-003: inicio de sesion de user, vigencia 1800 — expects 200
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "user", "password": "{{userPassword}}"}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.test("Bearer token of 30 minutes", () => client.assert(response.body.tokenType === "Bearer" && response.body.expiresIn === 1800));
+client.global.set("userToken", response.body.accessToken);
+%}
+
+### US1-2 / FR-001: inicio de sesion de admin — expects 200
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": "{{adminPassword}}"}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.global.set("adminToken", response.body.accessToken);
+%}
+
+### Edge Inicio de sesion con un token previo invalido / FR-010 — expects 200
+POST {{baseUrl}}/auth/login
+Authorization: Bearer abc
+Content-Type: application/json
+
+{"username": "admin", "password": "{{adminPassword}}"}
+
+> {% client.test("status 200", () => client.assert(response.status === 200)); %}
+
+### US1-3 / FR-004: contrasena incorrecta — expects 401 AUTH_ERROR_001
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": "incorrecta"}
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### US1-4 / FR-004: usuario inexistente, misma respuesta — expects 401 AUTH_ERROR_001
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "nadie", "password": "incorrecta"}
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### Edge Mayusculas: el usuario se compara exactamente — expects 401 AUTH_ERROR_001
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "Admin", "password": "{{adminPassword}}"}
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### Edge Contrasena de mas de 72 bytes (73) — expects 401 AUTH_ERROR_001
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": "ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"}
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### US1-5 / FR-005: sin username — expects 400 PLAYLIST_GE_00001
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"password": "x"}
+
+> {% client.test("status 400", () => client.assert(response.status === 400)); %}
+
+### US1-5 / FR-005: sin password — expects 400 PLAYLIST_GE_00001
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "admin"}
+
+> {% client.test("status 400", () => client.assert(response.status === 400)); %}
+
+### Edge Credenciales en blanco — expects 400 PLAYLIST_GE_00001
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": "   "}
+
+> {% client.test("status 400", () => client.assert(response.status === 400)); %}
+
+### Edge Tipo de dato incorrecto — expects 400 PLAYLIST_GE_00001
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": 5}
+
+> {% client.test("status 400", () => client.assert(response.status === 400)); %}
+
+### Edge Cuerpo mal formado — expects 400 PLAYLIST_GE_00001
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username":
+
+> {% client.test("status 400", () => client.assert(response.status === 400)); %}
+
+### US2-1 / FR-010, FR-011: consultar todas sin token — expects 401 AUTH_ERROR_002
+GET {{baseUrl}}/lists
+
+> {%
+client.test("status 401", () => client.assert(response.status === 401));
+client.test("Bearer challenge", () => client.assert(response.headers.valueOf("WWW-Authenticate") === "Bearer"));
+%}
+
+### US2-1: consultar una sin token — expects 401 AUTH_ERROR_002
+GET {{baseUrl}}/lists/Rock
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### US2-1: crear sin token — expects 401 AUTH_ERROR_002
+POST {{baseUrl}}/lists
+Content-Type: application/json
+
+{"nombre": "Sin token"}
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### US2-1: borrar sin token — expects 401 AUTH_ERROR_002
+DELETE {{baseUrl}}/lists/Rock
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### US2-2: token ilegible — expects 401 AUTH_ERROR_002
+GET {{baseUrl}}/lists
+Authorization: Bearer abc
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### Edge Token sin firma (alg none) — expects 401 AUTH_ERROR_002
+GET {{baseUrl}}/lists
+Authorization: Bearer eyJhbGciOiJub25lIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiIsImV4cCI6NDEwMjQ0NDgwMH0.
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### Edge Otro esquema de autorizacion — expects 401 AUTH_ERROR_002
+GET {{baseUrl}}/lists
+Authorization: Basic dXNlcjpwYXNzd29yZA==
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### US2-4 / FR-014: lista inexistente sin token — expects 401, no 404
+GET {{baseUrl}}/lists/No-existe
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### Edge Ruta inexistente sin token — expects 401 AUTH_ERROR_002
+GET {{baseUrl}}/no-existe
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### Edge Ruta inexistente con token — expects 404
+GET {{baseUrl}}/no-existe
+Authorization: Bearer {{userToken}}
+
+> {% client.test("status 404", () => client.assert(response.status === 404)); %}
+
+### Edge Direccion rechazada por la proteccion de rutas, antes del token — expects 400 PLAYLIST_GE_00001
+GET {{baseUrl}}/lists/%252F
+
+> {% client.test("status 400", () => client.assert(response.status === 400)); %}
+
+### US3-4 / FR-013: admin crea — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "Rock", "canciones": [{"titulo": "Uno"}]}
+
+> {% client.test("status 201", () => client.assert(response.status === 201)); %}
+
+### US3-1 / FR-012, FR-017: user consulta todas — expects 200
+GET {{baseUrl}}/lists
+Authorization: Bearer {{userToken}}
+
+> {% client.test("status 200", () => client.assert(response.status === 200)); %}
+
+### US3-1: user consulta una — expects 200
+GET {{baseUrl}}/lists/Rock
+Authorization: Bearer {{userToken}}
+
+> {% client.test("status 200", () => client.assert(response.status === 200)); %}
+
+### US3-1: user consulta una inexistente — expects 404 PLAYLIST_GE_00002
+GET {{baseUrl}}/lists/No-existe
+Authorization: Bearer {{userToken}}
+
+> {% client.test("status 404", () => client.assert(response.status === 404)); %}
+
+### US3-2 / FR-012: user no puede crear — expects 403 AUTH_ERROR_003
+POST {{baseUrl}}/lists
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{"nombre": "Prohibida"}
+
+> {% client.test("status 403", () => client.assert(response.status === 403)); %}
+
+### US3-3: user no puede borrar — expects 403 AUTH_ERROR_003
+DELETE {{baseUrl}}/lists/Rock
+Authorization: Bearer {{userToken}}
+
+> {% client.test("status 403", () => client.assert(response.status === 403)); %}
+
+### US3-5 / FR-014: user borra una inexistente — expects 403, no 404
+DELETE {{baseUrl}}/lists/No-existe
+Authorization: Bearer {{userToken}}
+
+> {% client.test("status 403", () => client.assert(response.status === 403)); %}
+
+### US3-5 / FR-014: user crea con datos invalidos — expects 403, no 400
+POST {{baseUrl}}/lists
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{"nombre": " "}
+
+> {% client.test("status 403", () => client.assert(response.status === 403)); %}
+
+### US3-2, US3-3: la lista Rock sigue y la prohibida no existe — expects 404 PLAYLIST_GE_00002
+GET {{baseUrl}}/lists/Prohibida
+Authorization: Bearer {{adminToken}}
+
+> {% client.test("status 404", () => client.assert(response.status === 404)); %}
+
+### US3-4: admin consulta — expects 200
+GET {{baseUrl}}/lists/Rock
+Authorization: Bearer {{adminToken}}
+
+> {% client.test("status 200", () => client.assert(response.status === 200)); %}
+
+### US3-4: admin borra — expects 204
+DELETE {{baseUrl}}/lists/Rock
+Authorization: Bearer {{adminToken}}
+
+> {% client.test("status 204", () => client.assert(response.status === 204)); %}
+
+### US3-6 / FR-018: nombre con punto y coma — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "a;b"}
+
+> {% client.test("status 201", () => client.assert(response.status === 201)); %}
+
+### US3-6: consultarlo — expects 200
+GET {{baseUrl}}/lists/a%3Bb
+Authorization: Bearer {{userToken}}
+
+> {% client.test("status 200", () => client.assert(response.status === 200)); %}
+
+### US3-6: borrarlo — expects 204
+DELETE {{baseUrl}}/lists/a%3Bb
+Authorization: Bearer {{adminToken}}
+
+> {% client.test("status 204", () => client.assert(response.status === 204)); %}
+
+### US3-6: nombre con porcentaje — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "100%"}
+
+> {% client.test("status 201", () => client.assert(response.status === 201)); %}
+
+### US3-6: consultarlo — expects 200
+GET {{baseUrl}}/lists/100%25
+Authorization: Bearer {{userToken}}
+
+> {% client.test("status 200", () => client.assert(response.status === 200)); %}
+
+### US3-6: borrarlo — expects 204
+DELETE {{baseUrl}}/lists/100%25
+Authorization: Bearer {{adminToken}}
+
+> {% client.test("status 204", () => client.assert(response.status === 204)); %}
+
+### US3-7 / FR-018: nombre con %2F — expects 400 PLAYLIST_GE_00001
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "a%2Fb"}
+
+> {% client.test("status 400", () => client.assert(response.status === 400)); %}
+
+### US3-7 / FR-018: nombre con %0a en minusculas — expects 400 PLAYLIST_GE_00001
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "a%0ab"}
+
+> {% client.test("status 400", () => client.assert(response.status === 400)); %}
+
+### US3-7 / FR-018: nombre con separador U+2028 — expects 400 PLAYLIST_GE_00001
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "a b"}
+
+> {% client.test("status 400", () => client.assert(response.status === 400)); %}
+
+### Edge Nombres parecidos a los rechazados: %2E sigue siendo valido — expects 201
+POST {{baseUrl}}/lists
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"nombre": "%2E"}
+
+> {% client.test("status 201", () => client.assert(response.status === 201)); %}

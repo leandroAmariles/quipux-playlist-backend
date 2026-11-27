@@ -30,6 +30,19 @@ class PlaylistTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {
+            "%2F", "%2f", "a%2Fb", "%5C", "x%5cy", "%00", "%0A", "%0a", "%0D", "%0d", "a b", "a b"})
+    void rejectsNameWithASequenceThatThePathProtectionBlocks(String name) {
+        assertThatThrownBy(() -> playlist(name)).isInstanceOf(InvalidPlaylistException.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"%", "%25", "%2E", "%2", "2F", "a;b", "100%"})
+    void acceptsNameThatOnlyLooksLikeABlockedSequence(String name) {
+        assertThat(playlist(name).name()).isEqualTo(name);
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"Mis favoritas", " Rock ", "...", "a.b", "ñandú", "a;b+c&d?e#f%g"})
     void keepsAcceptedNameExactlyAsSent(String name) {
         assertThat(playlist(name).name()).isEqualTo(name);

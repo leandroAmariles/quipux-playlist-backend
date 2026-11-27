@@ -1,6 +1,9 @@
 # Contrato REST: listas de reproducción
 
-Base: `http://localhost:8080`. Sin autenticación hasta HU-03.
+Base: `http://localhost:8080`.
+
+**Desde HU-03** todas estas operaciones exigen token y rol, y `POST /lists` rechaza además algunos nombres: ver el
+[contrato de autenticación](../../03-authentication-authorization/contracts/rest-api.md).
 
 ## Representación
 

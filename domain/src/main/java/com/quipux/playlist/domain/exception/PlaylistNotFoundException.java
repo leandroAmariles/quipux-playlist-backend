@@ -1,10 +1,10 @@
 package com.quipux.playlist.domain.exception;
 
-import com.quipux.playlist.domain.model.enums.ResponseCodeEnum;
+import com.quipux.playlist.domain.model.enums.ErrorMessageEnum;
 
 public class PlaylistNotFoundException extends BusinessException {
 
     public PlaylistNotFoundException() {
-        super(ResponseCodeEnum.PLAYLIST_NOT_FOUND, "The playlist does not exist");
+        super(ErrorMessageEnum.PLAYLIST_NOT_FOUND);
     }
 }

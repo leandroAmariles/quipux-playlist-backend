@@ -8,9 +8,6 @@ import org.springframework.r2dbc.core.DatabaseClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-/**
- * The in-memory database is shared between tests, so each one uses its own playlist names.
- */
 @SpringBootTest
 class SchemaTest {
 
@@ -18,12 +15,12 @@ class SchemaTest {
     private DatabaseClient databaseClient;
 
     @Test
-    void createsPlaylistAndSongTables() {
+    void createsTheTables() {
         String query = "SELECT table_name FROM information_schema.tables "
                 + "WHERE table_schema = 'PUBLIC' ORDER BY table_name";
 
         StepVerifier.create(databaseClient.sql(query).map(row -> row.get(0, String.class)).all())
-                .expectNext("PLAYLIST", "SONG")
+                .expectNext("APP_USER", "PLAYLIST", "SONG")
                 .verifyComplete();
     }
 

@@ -9,14 +9,26 @@
 #   FR-002 error inesperado (500) sin datos internos: PlaylistControllerCreateTest
 
 @baseUrl = http://localhost:8080
+# Contrasena del usuario admin: el valor de DEMO_ADMIN_PASSWORD. No guardarla en el repositorio.
+@adminPassword = <contrasena-admin>
+
+### HU-03: desde la autenticacion, todas las peticiones llevan el token de ADMIN — expects 200
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": "{{adminPassword}}"}
+
+> {% client.global.set("token", response.body.accessToken); %}
 
 ### US2-2 / FR-012: sin listas, arreglo vacio (requiere la aplicacion recien arrancada) — expects 200
 GET {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 
 > {% client.test("status 200", () => client.assert(response.status === 200)); %}
 
 ### US1-1 / FR-001, FR-003: crear con descripcion y dos canciones, con Location /lists/Rock — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -32,6 +44,7 @@ Content-Type: application/json
 
 ### US1-3 / FR-005: nombre repetido — expects 409 PLAYLIST_GE_00003
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "Rock"}
@@ -40,6 +53,7 @@ Content-Type: application/json
 
 ### Edge Mayusculas / FR-005: 'rock' es otra lista — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "rock"}
@@ -48,6 +62,7 @@ Content-Type: application/json
 
 ### Edge Espacios alrededor / FR-005: ' Rock ' es otra lista — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": " Rock "}
@@ -56,6 +71,7 @@ Content-Type: application/json
 
 ### US1-6 / FR-006: sin canciones, devuelve arreglo vacio — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "Sin canciones"}
@@ -64,6 +80,7 @@ Content-Type: application/json
 
 ### FR-006: canciones nulo equivale a vacio; anno es texto libre — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "Nulos", "descripcion": null, "canciones": null}
@@ -72,6 +89,7 @@ Content-Type: application/json
 
 ### Edge Canciones repetidas: se guardan todas — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "Repetidas", "canciones": [{"titulo": "A", "anno": "c. 1970"}, {"titulo": "A", "anno": "c. 1970"}]}
@@ -80,6 +98,7 @@ Content-Type: application/json
 
 ### US1-2 / FR-004: sin nombre — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"descripcion": "x"}
@@ -88,6 +107,7 @@ Content-Type: application/json
 
 ### US1-2 / FR-004: nombre nulo — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": null}
@@ -96,6 +116,7 @@ Content-Type: application/json
 
 ### US1-2 / FR-004: nombre vacio — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": ""}
@@ -104,6 +125,7 @@ Content-Type: application/json
 
 ### US1-2 / FR-004: nombre solo con espacios — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "   "}
@@ -112,6 +134,7 @@ Content-Type: application/json
 
 ### US1-5 / FR-009: nombre con espacios, Location /lists/Mis%20favoritas — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "Mis favoritas"}
@@ -120,11 +143,13 @@ Content-Type: application/json
 
 ### US1-5 / FR-009: seguir la Location — expects 200
 GET {{baseUrl}}/lists/Mis%20favoritas
+Authorization: Bearer {{token}}
 
 > {% client.test("status 200", () => client.assert(response.status === 200)); %}
 
 ### Edge Caracteres especiales / FR-009: crear — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "Ñandú & ? # + ; %"}
@@ -133,16 +158,19 @@ Content-Type: application/json
 
 ### Edge Caracteres especiales / SC-004: consultar — expects 200
 GET {{baseUrl}}/lists/%C3%91and%C3%BA%20%26%20%3F%20%23%20%2B%20%3B%20%25
+Authorization: Bearer {{token}}
 
 > {% client.test("status 200", () => client.assert(response.status === 200)); %}
 
 ### Edge Caracteres especiales / SC-004: borrar — expects 204
 DELETE {{baseUrl}}/lists/%C3%91and%C3%BA%20%26%20%3F%20%23%20%2B%20%3B%20%25
+Authorization: Bearer {{token}}
 
 > {% client.test("status 204", () => client.assert(response.status === 204)); %}
 
 ### Edge No direccionables / FR-010: nombre con / — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "a/b"}
@@ -151,6 +179,7 @@ Content-Type: application/json
 
 ### Edge No direccionables / FR-010: nombre con \ — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "a\\b"}
@@ -159,6 +188,7 @@ Content-Type: application/json
 
 ### Edge No direccionables / FR-010: nombre con caracter de control — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "a\tb"}
@@ -167,6 +197,7 @@ Content-Type: application/json
 
 ### Edge No direccionables / FR-010: nombre igual a . — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "."}
@@ -175,6 +206,7 @@ Content-Type: application/json
 
 ### Edge No direccionables / FR-010: nombre igual a .. — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": ".."}
@@ -183,6 +215,7 @@ Content-Type: application/json
 
 ### Edge Longitud maxima / FR-007: nombre con 255 caracteres — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
@@ -191,6 +224,7 @@ Content-Type: application/json
 
 ### Edge Longitud maxima / FR-007: nombre con 256 caracteres — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
@@ -199,6 +233,7 @@ Content-Type: application/json
 
 ### Edge Longitud maxima / FR-007: descripcion con 1000 caracteres — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "limite-1-0", "descripcion": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
@@ -207,6 +242,7 @@ Content-Type: application/json
 
 ### Edge Longitud maxima / FR-007: descripcion con 1001 caracteres — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "limite-1-1", "descripcion": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
@@ -215,6 +251,7 @@ Content-Type: application/json
 
 ### Edge Longitud maxima / FR-007: titulo con 255 caracteres — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "limite-2-0", "canciones": [{"titulo": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}]}
@@ -223,6 +260,7 @@ Content-Type: application/json
 
 ### Edge Longitud maxima / FR-007: titulo con 256 caracteres — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "limite-2-1", "canciones": [{"titulo": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}]}
@@ -231,6 +269,7 @@ Content-Type: application/json
 
 ### Edge Longitud maxima / FR-007: artista con 255 caracteres — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "limite-3-0", "canciones": [{"artista": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}]}
@@ -239,6 +278,7 @@ Content-Type: application/json
 
 ### Edge Longitud maxima / FR-007: artista con 256 caracteres — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "limite-3-1", "canciones": [{"artista": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}]}
@@ -247,6 +287,7 @@ Content-Type: application/json
 
 ### Edge Longitud maxima / FR-007: album con 255 caracteres — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "limite-4-0", "canciones": [{"album": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}]}
@@ -255,6 +296,7 @@ Content-Type: application/json
 
 ### Edge Longitud maxima / FR-007: album con 256 caracteres — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "limite-4-1", "canciones": [{"album": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}]}
@@ -263,6 +305,7 @@ Content-Type: application/json
 
 ### Edge Longitud maxima / FR-007: anno con 10 caracteres — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "limite-5-0", "canciones": [{"anno": "xxxxxxxxxx"}]}
@@ -271,6 +314,7 @@ Content-Type: application/json
 
 ### Edge Longitud maxima / FR-007: anno con 11 caracteres — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "limite-5-1", "canciones": [{"anno": "xxxxxxxxxxx"}]}
@@ -279,6 +323,7 @@ Content-Type: application/json
 
 ### Edge Longitud maxima / FR-007: genero con 100 caracteres — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "limite-6-0", "canciones": [{"genero": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}]}
@@ -287,6 +332,7 @@ Content-Type: application/json
 
 ### Edge Longitud maxima / FR-007: genero con 101 caracteres — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "limite-6-1", "canciones": [{"genero": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}]}
@@ -295,6 +341,7 @@ Content-Type: application/json
 
 ### Edge Cuerpo ilegible / FR-011, FR-002: JSON mal formado — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": 
@@ -303,6 +350,7 @@ Content-Type: application/json
 
 ### Edge Cuerpo ilegible / FR-011, FR-002: numero donde va texto — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": 5}
@@ -311,6 +359,7 @@ Content-Type: application/json
 
 ### Edge Cuerpo ilegible / FR-011, FR-002: canciones no es un arreglo — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "x1", "canciones": {}}
@@ -319,6 +368,7 @@ Content-Type: application/json
 
 ### Edge Cuerpo ilegible / FR-011, FR-002: cancion nula — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "x2", "canciones": [null]}
@@ -327,6 +377,7 @@ Content-Type: application/json
 
 ### Edge Cuerpo ausente / FR-011 — expects 400 PLAYLIST_GE_00001
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 
@@ -335,6 +386,7 @@ Content-Type: application/json
 
 ### Contrato: Content-Type distinto de JSON — expects 415
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: text/plain
 
 Rock
@@ -343,46 +395,55 @@ Rock
 
 ### US2-1, US2-3, US2-4 / FR-012, FR-013: todas las listas, en orden de creacion — expects 200
 GET {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 
 > {% client.test("status 200", () => client.assert(response.status === 200)); %}
 
 ### US3-1 / FR-014: consultar una lista — expects 200
 GET {{baseUrl}}/lists/Rock
+Authorization: Bearer {{token}}
 
 > {% client.test("status 200", () => client.assert(response.status === 200)); %}
 
 ### US3-2 / FR-014: lista inexistente — expects 404 PLAYLIST_GE_00002
 GET {{baseUrl}}/lists/Jazz
+Authorization: Bearer {{token}}
 
 > {% client.test("status 404", () => client.assert(response.status === 404)); %}
 
 ### FR-014: el nombre debe coincidir exactamente — expects 404 PLAYLIST_GE_00002
 GET {{baseUrl}}/lists/ROCK
+Authorization: Bearer {{token}}
 
 > {% client.test("status 404", () => client.assert(response.status === 404)); %}
 
 ### US4-1, US4-3 / FR-015, FR-016: borrar una lista con canciones — expects 204
 DELETE {{baseUrl}}/lists/Rock
+Authorization: Bearer {{token}}
 
 > {% client.test("status 204", () => client.assert(response.status === 204)); %}
 
 ### US4-1: la lista borrada ya no existe — expects 404 PLAYLIST_GE_00002
 GET {{baseUrl}}/lists/Rock
+Authorization: Bearer {{token}}
 
 > {% client.test("status 404", () => client.assert(response.status === 404)); %}
 
 ### US4-3: las demas listas conservan las suyas — expects 200
 GET {{baseUrl}}/lists/Repetidas
+Authorization: Bearer {{token}}
 
 > {% client.test("status 200", () => client.assert(response.status === 200)); %}
 
 ### US4-2 / FR-015: borrar una lista inexistente — expects 404 PLAYLIST_GE_00002
 DELETE {{baseUrl}}/lists/Jazz
+Authorization: Bearer {{token}}
 
 > {% client.test("status 404", () => client.assert(response.status === 404)); %}
 
 ### US4-5: reutilizar el nombre — expects 201
 POST {{baseUrl}}/lists
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"nombre": "Rock"}
@@ -391,5 +452,6 @@ Content-Type: application/json
 
 ### US4-5: la lista nueva no tiene canciones antiguas — expects 200
 GET {{baseUrl}}/lists/Rock
+Authorization: Bearer {{token}}
 
 > {% client.test("status 200", () => client.assert(response.status === 200)); %}
