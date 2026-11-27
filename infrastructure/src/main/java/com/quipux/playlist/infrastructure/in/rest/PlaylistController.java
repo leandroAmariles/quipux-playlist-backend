@@ -28,6 +28,7 @@ public class PlaylistController {
     public static final String PATH = "/lists";
     private static final String PATH_SEPARATOR = "/";
     private static final String ITEM_PATH = PATH_SEPARATOR + "{listName}";
+    public static final String PLAYLIST_PATH = PATH + ITEM_PATH;
 
     private final CreatePlaylistPort createPlaylist;
     private final GetPlaylistsPort getPlaylists;

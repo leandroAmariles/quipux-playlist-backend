@@ -4,6 +4,7 @@ import com.quipux.playlist.domain.model.enums.Role;
 import com.quipux.playlist.infrastructure.in.rest.AuthController;
 import com.quipux.playlist.infrastructure.in.rest.GenreController;
 import com.quipux.playlist.infrastructure.in.rest.PlaylistController;
+import com.quipux.playlist.infrastructure.in.rest.doc.DocumentationPath;
 import com.quipux.playlist.infrastructure.in.rest.security.SecurityErrorHandlers;
 import com.quipux.playlist.infrastructure.in.rest.security.TokenExpiryValidator;
 import com.quipux.playlist.infrastructure.security.SigningKey;
@@ -50,6 +51,8 @@ public class SecurityConfig {
     SecurityWebFilterChain apiSecurityFilterChain(ServerHttpSecurity http, SecurityErrorHandlers errorHandlers) {
         return stateless(http)
                 .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers(HttpMethod.GET, DocumentationPath.publicPatterns())
+                        .permitAll()
                         .pathMatchers(HttpMethod.GET, PLAYLIST_PATHS)
                         .hasAnyRole(Role.USER.name(), Role.ADMIN.name())
                         .pathMatchers(HttpMethod.HEAD, PLAYLIST_PATHS)

@@ -1,0 +1,90 @@
+# HU-06: casos de prueba de la especificacion (spec.md). Ejecutar de arriba abajo con la aplicacion recien arrancada.
+#
+# Not covered here:
+#   US1, FR-014 a FR-019, SC-001, SC-005  README: quickstart.md, paso 5
+#   US2, FR-001 a FR-006, SC-002  coleccion de Postman: PostmanCollectionTest y quickstart.md, paso 4
+#   FR-012  operaciones y codigos exactos del contrato: OpenApiContractTest
+#   FR-013, SC-004  sin secretos: OpenApiContractTest, PostmanCollectionTest
+#   FR-020  operaciones sin cambios: pruebas de HU-02 a HU-04
+#   US3-3 con la interfaz (Authorize)  quickstart.md, paso 3
+#   Sin llamadas bloqueantes: PlaylistNonBlockingTest
+
+@baseUrl = http://localhost:8080
+# El valor de DEMO_USER_PASSWORD. No guardarlo en el repositorio.
+@userPassword = <contrasena-user>
+
+### US3-1, US3-2 / FR-007, FR-008, FR-010, FR-011: el contrato se abre sin token — expects 200
+GET {{baseUrl}}/v3/api-docs
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.test("six operations", () => client.assert(
+    Object.values(response.body.paths).reduce((total, path) => total + Object.keys(path).length, 0) === 6));
+client.test("bearer scheme", () => client.assert(response.body.components.securitySchemes.bearerAuth.scheme === "bearer"));
+client.test("create answers 201", () => client.assert(!!response.body.paths["/lists"].post.responses["201"]));
+%}
+
+### US3-1 / FR-007, FR-011: configuracion de la interfaz sin token — expects 200
+GET {{baseUrl}}/v3/api-docs/swagger-config
+
+> {% client.test("status 200", () => client.assert(response.status === 200)); %}
+
+### US3-1 / FR-007: entrada de Swagger UI — expects 302
+# @no-redirect
+GET {{baseUrl}}/swagger-ui.html
+
+### US3-1 / FR-007, FR-011: la interfaz se abre sin token — expects 200
+GET {{baseUrl}}/swagger-ui/index.html
+
+> {% client.test("status 200", () => client.assert(response.status === 200)); %}
+
+### US3-3 / FR-010: inicio de sesion para autorizar — expects 200
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "user", "password": "{{userPassword}}"}
+
+> {%
+client.test("status 200", () => client.assert(response.status === 200));
+client.global.set("userToken", response.body.accessToken);
+%}
+
+### US3-3 / FR-010: operacion protegida con el token — expects 200
+GET {{baseUrl}}/lists
+Authorization: Bearer {{userToken}}
+
+> {% client.test("status 200", () => client.assert(response.status === 200)); %}
+
+### US3-4 / US3-5, FR-020: listas sin token — expects 401
+GET {{baseUrl}}/lists
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### US3-5 / FR-011: generos sin token — expects 401
+GET {{baseUrl}}/genres
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### Edge Rutas no documentadas / FR-011: contrato en YAML sin token — expects 401
+GET {{baseUrl}}/v3/api-docs.yaml
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### Edge Rutas no documentadas / FR-011: webjars sin token — expects 401
+GET {{baseUrl}}/webjars/swagger-ui/index.html
+
+> {% client.test("status 401", () => client.assert(response.status === 401)); %}
+
+### Edge Direccion rechazada por la proteccion de rutas / FR-008 — expects 400
+GET {{baseUrl}}/lists/%252F
+Authorization: Bearer {{userToken}}
+
+> {% client.test("status 400", () => client.assert(response.status === 400)); %}
+
+### Edge Contrasenas sin escribir — expects 400
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username": "user", "password": ""}
+
+> {% client.test("status 400", () => client.assert(response.status === 400)); %}

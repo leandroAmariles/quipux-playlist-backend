@@ -1,12 +1,16 @@
 package com.quipux.playlist;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.quipux.playlist.domain.model.enums.DemoUser;
 import com.quipux.playlist.infrastructure.in.rest.AuthController;
 import java.net.URI;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -19,6 +23,8 @@ import reactor.test.StepVerifier;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PlaylistNonBlockingTest extends SpotifyApiTestSupport {
+
+    private static final String DOCUMENTATION_FILE = "documentation-routes.properties";
 
     private WebClient userClient;
 
@@ -87,6 +93,32 @@ class PlaylistNonBlockingTest extends SpotifyApiTestSupport {
         StepVerifier.create(everyGenreOutcome("genres-local"))
                 .expectNext(200, 201, 400)
                 .verifyComplete();
+    }
+
+    @Test
+    void servesTheDocumentationWithoutBlocking() {
+        StepVerifier.create(everyDocumentationRoute().collectList())
+                .assertNext(statuses -> assertThat(statuses).isNotEmpty().containsOnly(200, 302))
+                .verifyComplete();
+    }
+
+    private Flux<Integer> everyDocumentationRoute() {
+        Flux<String> open = Flux.fromIterable(Stream.concat(
+                        TestProperties.values(DOCUMENTATION_FILE, "public.").stream().map(line -> line.split("\\|")[0]),
+                        TestProperties.values(DOCUMENTATION_FILE, "asset.").stream())
+                .toList());
+        Flux<String> authenticated = Flux.fromIterable(TestProperties.values(DOCUMENTATION_FILE, "authenticated."));
+
+        return Flux.concat(
+                Flux.just("es-CO", "fr-FR").concatMap(language -> open
+                        .concatMap(path -> documentationStatus(anonymousClient, path, language))),
+                authenticated.concatMap(path -> documentationStatus(webClient, path, "es-CO")));
+    }
+
+    private Mono<Integer> documentationStatus(WebClient client, String path, String language) {
+        return client.get().uri(path)
+                .header(HttpHeaders.ACCEPT_LANGUAGE, language)
+                .exchangeToMono(response -> response.releaseBody().thenReturn(response.statusCode().value()));
     }
 
     private Flux<Integer> everyGenreOutcome(String name) {

@@ -31,6 +31,7 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <blockhound.version>1.0.19.RELEASE</blockhound.version>
         <wiremock.version>3.13.2</wiremock.version>
+        <springdoc.version>3.2.0</springdoc.version>
         <jacoco.version>0.8.16</jacoco.version>
         <jacoco.line.minimum>0.80</jacoco.line.minimum>
         <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
@@ -43,6 +44,11 @@
                 <groupId>org.mapstruct</groupId>
                 <artifactId>mapstruct</artifactId>
                 <version>${mapstruct.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+                <version>${springdoc.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.wiremock</groupId>
