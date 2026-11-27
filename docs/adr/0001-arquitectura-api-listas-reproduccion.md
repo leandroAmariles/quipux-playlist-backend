@@ -183,6 +183,7 @@ springdoc-openapi para WebFlux, con el esquema Bearer JWT declarado.
 - **Concreción (2026-11-27, HU-07):** la composición lleva backend, frontend y WireMock; Redis y Kafka se añaden con
   HU-10 y HU-11, cuando la aplicación los use. WireMock se activa con un segundo archivo, `compose.wiremock.yaml`. Los
   puertos se publican solo en la máquina local. nginx reenvía `/api` con la ruta tal como llega, sin recodificarla.
+- **Concreción (2026-11-27, HU-08):** las imágenes usan `eclipse-temurin:21.0.13.1_2-jre-alpine-3.24` (backend) y `nginxinc/nginx-unprivileged:1.31.7-alpine` (frontend, rama principal 1.31), ejecutando `apk upgrade --no-cache` en la etapa final como `root` y volviendo a usuario sin privilegios (`10001:10001` y `101`) para pasar Trivy.
 
 ### 8. Contrato y modelo de datos
 
@@ -259,6 +260,7 @@ La web llama a la API por una ruta del mismo origen: proxy de desarrollo de Angu
 - **Rama `main` protegida** en los tres repositorios: los cambios entran por PR con el CI en verde. En infra se exige solo el PR hasta que exista su CI (fase 9). En el plan gratuito de GitHub esto requiere repositorios públicos.
 - **Dependabot** propone actualizaciones de Maven, npm, Docker y GitHub Actions, incluidos los SHA fijados, con mensajes en formato Conventional Commits.
 - Las imágenes se publican en GHCR con el número de versión como tag.
+- **Concreción (2026-11-27, HU-08):** Qodana usa el perfil `qodana.starter` con umbral `0` para `Critical` y `High`; Trivy analiza el jar de `bootstrap` (`rootfs`) en backend y `package-lock.json` (`fs`) en frontend, además de secretos en ambos repositorios; el PR automático al repositorio de infra con el nuevo tag y su token quedan para HU-09.
 - El workflow de la aplicación abre un PR en el repositorio de infra con el nuevo tag. Para esto necesita un token con permisos solo sobre ese repositorio, guardado como secreto. Al fusionar el PR, Argo CD despliega.
 
 ```mermaid
@@ -305,7 +307,7 @@ Las fases 1 a 5 cubren el enunciado y se terminan primero. Nunca se entrega una 
 - [ ] Respuesta sobre el uso de R2DBC en lugar de JPA
 - [x] Tres repositorios públicos creados con los nombres de la sección 3
 - [ ] Revisar los detalles propuestos en las secciones 7, 12 y 13
-- [ ] Crear los tokens para release-please y para los PR al repositorio de infra
+- [ ] Separar y rotar `RELEASE_PLEASE_TOKEN` en dos PATs independientes por repositorio (temporalmente compartido) y crear el token para los PR al repositorio de infra (HU-09)
 - [x] Definir `SPOTIFY_CLIENT_ID` y `SPOTIFY_CLIENT_SECRET` y probar los endpoints
 
 ## Instrucciones para continuar con Claude Code
