@@ -193,20 +193,20 @@ Basado en el ADR-0001. Se prioriza la calidad sobre el plazo: las horas (16 en t
 **Como** responsable de operaciones, **quiero** manifiestos con Kustomize en el repositorio de infra aplicados por Argo CD, **para** desplegar de forma repetible y solo mediante Git.
 
 **Manifiestos**
-- [ ] Deployments, Services, ConfigMap, Secret de ejemplo y probes accesibles sin token.
-- [ ] El Secret de ejemplo no está en `kustomization.yaml` y no hay secretos reales en Git.
-- [ ] Backend con una réplica.
-- [ ] El CI de infra valida `kustomize build` y ejecuta Trivy de configuración y secretos.
-- [ ] `main` de infra exige además el CI en verde.
-- [ ] release-please está activo en el repositorio de infra.
-- [ ] Probado en un clúster local.
+- [x] Deployments, Services, ConfigMap, Secret de ejemplo y probes accesibles sin token.
+- [x] El Secret de ejemplo no está en `kustomization.yaml` y no hay secretos reales en Git.
+- [x] Backend con una réplica.
+- [x] El CI de infra valida `kustomize build` y ejecuta Trivy de configuración y secretos.
+- [x] `main` de infra exige además el CI en verde.
+- [x] release-please está activo en el repositorio de infra.
+- [x] Probado en un clúster local.
 
 **Despliegue GitOps**
-- [ ] Argo CD está instalado en un clúster local y su `Application` está versionada en `argocd/`.
-- [ ] Tras una release, se abre un PR en infra con el nuevo tag.
-- [ ] El token para ese PR solo tiene permisos sobre el repositorio de infra y está como secreto.
-- [ ] Al fusionar el PR, Argo CD sincroniza y la aplicación queda `Healthy`.
-- [ ] El Secret real se crea en el clúster con un paso documentado.
+- [x] Argo CD está instalado en un clúster local y su `Application` está versionada en `argocd/`.
+- [x] Tras una release, se abre un PR en infra con el nuevo tag.
+- [x] El token para ese PR solo tiene permisos sobre el repositorio de infra y está como secreto.
+- [x] Al fusionar el PR, Argo CD sincroniza y la aplicación queda `Healthy`.
+- [x] El Secret real se crea en el clúster con un paso documentado.
 
 ## Épica 6: Valor añadido
 

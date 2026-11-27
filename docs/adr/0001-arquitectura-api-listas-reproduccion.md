@@ -184,6 +184,7 @@ springdoc-openapi para WebFlux, con el esquema Bearer JWT declarado.
   HU-10 y HU-11, cuando la aplicación los use. WireMock se activa con un segundo archivo, `compose.wiremock.yaml`. Los
   puertos se publican solo en la máquina local. nginx reenvía `/api` con la ruta tal como llega, sin recodificarla.
 - **Concreción (2026-11-27, HU-08):** las imágenes usan `eclipse-temurin:21.0.13.1_2-jre-alpine-3.24` (backend) y `nginxinc/nginx-unprivileged:1.31.7-alpine` (frontend, rama principal 1.31), ejecutando `apk upgrade --no-cache` en la etapa final como `root` y volviendo a usuario sin privilegios (`10001:10001` y `101`) para pasar Trivy.
+- **Concreción (2026-11-27, HU-09):** el clúster local se levanta con `kind` (`quipux-playlist`) y **Argo CD `v3.5.9`** (`argocd/application.yaml` sobre `main`/`k8s` con `prune: true` y `selfHeal: true`). En el backend, `spring-boot-starter-actuator` expone sin token únicamente `GET /actuator/health/liveness` y `GET /actuator/health/readiness` (`show-details: never`, cadena `SecurityWebFilterChain` dedicada antes de `apiSecurityFilterChain`, sin bloqueo bajo `BlockHound`), dejando `/actuator/health` y `/actuator/**` protegidos con `401`. Los pods corren endurecidos (`readOnlyRootFilesystem: true`, `capabilities.drop: ["ALL"]`, `seccompProfile: RuntimeDefault`) con `emptyDir` en `/tmp` (backend) y en `/etc/nginx/conf.d`, `/var/cache/nginx` y `/tmp` (frontend), y `API_URL` en `ConfigMap` usa el FQDN `http://api.quipux-playlist.svc.cluster.local:8080` requerido por el `resolver` de nginx en Kubernetes.
 
 ### 8. Contrato y modelo de datos
 
@@ -261,6 +262,7 @@ La web llama a la API por una ruta del mismo origen: proxy de desarrollo de Angu
 - **Dependabot** propone actualizaciones de Maven, npm, Docker y GitHub Actions, incluidos los SHA fijados, con mensajes en formato Conventional Commits.
 - Las imágenes se publican en GHCR con el número de versión como tag.
 - **Concreción (2026-11-27, HU-08):** Qodana usa el perfil `qodana.starter` con umbral `0` para `Critical` y `High`; Trivy analiza el jar de `bootstrap` (`rootfs`) en backend y `package-lock.json` (`fs`) en frontend, además de secretos en ambos repositorios; el PR automático al repositorio de infra con el nuevo tag y su token quedan para HU-09.
+- **Concreción (2026-11-27, HU-09):** el CI de `quipux-playlist-infra` ejecuta `kustomize` y `trivy` (`config` sobre `k8s/` renderizado + `argocd/` y `fs --scanners secret`), ambos obligatorios en la protección de `main`; Dependabot cubre `docker-compose` y `github-actions`; `release-please` usa `release-type: simple` (`initial-version: 0.1.0`) con `RELEASE_PLEASE_TOKEN`; y en backend y frontend el trabajo `update-infra` (`needs: [release-please, publish]`, ramas `chore/deploy-backend` y `chore/deploy-frontend`, commit `chore(deploy): bump <component> image to X.Y.Z`) abre o actualiza el PR en infra usando `INFRA_PR_TOKEN` limitado exclusivamente a `quipux-playlist-infra`.
 - El workflow de la aplicación abre un PR en el repositorio de infra con el nuevo tag. Para esto necesita un token con permisos solo sobre ese repositorio, guardado como secreto. Al fusionar el PR, Argo CD despliega.
 
 ```mermaid
@@ -307,7 +309,7 @@ Las fases 1 a 5 cubren el enunciado y se terminan primero. Nunca se entrega una 
 - [ ] Respuesta sobre el uso de R2DBC en lugar de JPA
 - [x] Tres repositorios públicos creados con los nombres de la sección 3
 - [ ] Revisar los detalles propuestos en las secciones 7, 12 y 13
-- [ ] Separar y rotar `RELEASE_PLEASE_TOKEN` en dos PATs independientes por repositorio (temporalmente compartido) y crear el token para los PR al repositorio de infra (HU-09)
+- [ ] Separar y rotar `RELEASE_PLEASE_TOKEN` en dos PATs independientes por repositorio (temporalmente compartido) y rotar el PAT compartido durante la configuración tras crear `INFRA_PR_TOKEN` limitado a `quipux-playlist-infra` (HU-09)
 - [x] Definir `SPOTIFY_CLIENT_ID` y `SPOTIFY_CLIENT_SECRET` y probar los endpoints
 
 ## Instrucciones para continuar con Claude Code

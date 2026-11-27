@@ -163,6 +163,9 @@ cambio incompatible suben el menor mientras la versión sea menor que 1.0.0. `do
    `CHANGELOG.md`. Pasa por el mismo CI que los demás.
 2. Al fusionarlo se crean el tag `vX.Y.Z` y la release, y el mismo workflow
    ([`release.yml`](.github/workflows/release.yml)) construye la imagen, la analiza con Trivy y la publica.
+3. Si la publicación en GHCR termina en verde, el trabajo `update-infra` abre o actualiza automáticamente un PR en
+   `quipux-playlist-infra` (`chore(deploy): bump backend image to X.Y.Z`) actualizando el tag en `k8s/kustomization.yaml`
+   para que Argo CD lo despliegue tras aprobar el CI de infra. Si falla `publish`, no se abre ningún PR en infra.
 
 La imagen es `ghcr.io/leandroamariles/quipux-playlist-backend:X.Y.Z`, para `linux/amd64` y sin etiqueta `latest`.
 
@@ -187,6 +190,9 @@ No viven en el código, así que hay que repetirlos si se recrea el repositorio.
    venza, el workflow `Release` falla: genera otro y sustituye el secreto.
 3. **Imagen pública:** tras la primera publicación, abre el paquete y usa **Package settings → Change visibility →
    Public**. En GitHub no se puede volver a privado.
+4. **Token para abrir PR en infra (`INFRA_PR_TOKEN`):** crea un PAT de grano fino limitado **exclusivamente** a
+   `leandroAmariles/quipux-playlist-infra` con **Contents** y **Pull requests** en lectura y escritura, sin permisos sobre
+   este repositorio, y guárdalo con `gh secret set INFRA_PR_TOKEN -R leandroAmariles/quipux-playlist-backend`.
 
 ## Documentación interactiva
 
@@ -247,6 +253,17 @@ Los nombres de lista no admiten `/`, `\`, caracteres de control, `.` ni `..`, ni
 
 `GET /genres` devuelve `generos` y su `origen` (`SPOTIFY` o `LOCAL`). Al crear una lista, cada `genero` debe estar en
 ese catálogo, sin distinguir mayúsculas.
+
+### Sondas de salud (Kubernetes)
+
+Spring Boot Actuator expone sin token únicamente las sondas no bloqueantes de liveness y readiness (`{"status":"UP"}`,
+sin detalles internos); `/actuator/health` y el resto de `/actuator/**` siguen exigiendo autenticación (`401`):
+
+| Método y ruta | Quién | Respuestas |
+|---|---|---|
+| `GET /actuator/health/liveness` | cualquiera (sin token) | `200` (`{"status":"UP"}`) |
+| `GET /actuator/health/readiness` | cualquiera (sin token) | `200` (`{"status":"UP"}`) |
+| `GET /actuator/health`, `/actuator/**` | protegido | `401` sin token |
 
 ## Recomendaciones con IA
 
@@ -382,7 +399,7 @@ Las pruebas automáticas ya cubren este caso sin pasos manuales.
 |---|---|
 | [quipux-playlist-backend](https://github.com/leandroAmariles/quipux-playlist-backend) (este) | API y documentación |
 | [quipux-playlist-frontend](https://github.com/leandroAmariles/quipux-playlist-frontend) | Aplicación web Angular |
-| [quipux-playlist-infra](https://github.com/leandroAmariles/quipux-playlist-infra) | Docker Compose; Kubernetes y Argo CD, aún pendientes |
+| [quipux-playlist-infra](https://github.com/leandroAmariles/quipux-playlist-infra) | Docker Compose, Kubernetes (Kustomize) y Argo CD |
 
 ## Decisiones y especificaciones
 
