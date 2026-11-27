@@ -135,6 +135,32 @@ Cada entrada dice qué se pidió, qué devolvió la IA, qué se aceptó o correg
   única omitida solo corre en CI), líneas cubiertas por encima del 95 % en cada módulo, `docker compose config` válido y
   sin claves ni datos personales en los commits de las ramas.
 
+### P14 · 2026-11-27 · HU-14: especificación, plan, tareas e implementación
+
+- **Prompt:** "Genera la especificacion de la US HU-14, necsito que se implemente rapido, luego de la especificacion
+  genera el plan, tareas y luego imlementacion, optimiza el tiempo."
+- **Devuelto:** `specs/14-evaluation-traces/`, modo interno de evaluación, `evaluation/`, prompt desde Langfuse,
+  script de publicación, `compose.langfuse.yaml` y documentación. La web ya estaba entregada.
+- **Aceptado o corregido:** sin revisión de una persona. Correcciones del propio asistente tras ejecutar:
+  - el `include` de LiteLLM pisaba `litellm_settings` y el envío de trazas se perdía: modelos movidos a `models.yaml`;
+  - la evaluación usaba el prompt del archivo porque la primera consulta de una JVM supera 1 s: más margen solo ahí;
+  - el juez local devolvía formato inválido: salida con esquema en lugar de texto libre.
+- **Verificado:** 770 pruebas Java y `mvn verify` en verde; 7 pruebas de `evaluation/` y 3 del script; con la pila
+  real: publicación sin duplicados, una traza por llamada con versión `v2-lf1`, Langfuse detenido y claves fuera del
+  registro de `api`.
+- **Sin verificar:** evaluación completa de los 18 casos, línea base, puntuaciones vistas en Langfuse y
+  `requests.http`.
+
+### P15 · 2026-11-27 · HU-14: evaluación completa
+
+- **Prompt:** "Ya se reinicio docker"
+- **Devuelto:** ejecución de los 18 casos, `evaluation/BASELINE.md` y revisión de una muestra.
+- **Aceptado o corregido:** sin revisión de una persona. Los tiempos agotados de P14 eran por falta de memoria.
+- **Verificado:** 71 de 72 puntuaciones calculadas y las comprobaciones deterministas en los 18 casos; 18 trazas para
+  18 llamadas, sin trazas del juez; cinco puntuaciones en Langfuse con `v2-lf1`.
+- **Hallazgo:** `llama3.2:3b` escribe motivos falsos (artista, año o género que no son) y como juez no es fiable caso
+  a caso.
+
 ## 2. Prompt de generación del cliente
 
 Redactado el 2026-11-27 (T028) a partir del puerto, el contrato y los requisitos de `spec.md`, sin las conclusiones de la investigación ni del plan.
@@ -1463,3 +1489,14 @@ Todos los casos los escribió la IA; no consta ninguno añadido a mano.
 
 Casos de HU-12 que dejaron de aplicar: los de sugerencias libres (campos incompletos y repetidos por título y artista),
 sustituidos por los de identificadores desconocidos y repetidos, porque el modelo ya solo elige entre candidatas.
+
+### HU-14
+
+Todos los casos los escribió la IA; no consta ninguno añadido a mano.
+
+| Archivo de pruebas | Casos | Origen |
+|---|---|---|
+| `EvaluateRecommendationsUseCaseTest`, `RecommendationEvaluationApplicationTest` | modo interno de evaluación | IA |
+| `LangfusePromptSourceTest`, `RecommendationLangfuseApiTest` | prompt remoto, caída, caché y metadatos de la traza | IA |
+| `GetRecommendationsUseCaseTest`, `ErrorMessageEnumTest` (ampliadas) | proveedor fijado por petición y códigos | IA |
+| `evaluation/tests/test_checks.py`, `tools/langfuse/test_publish_prompt.py` | comprobaciones, casos y publicación | IA |
