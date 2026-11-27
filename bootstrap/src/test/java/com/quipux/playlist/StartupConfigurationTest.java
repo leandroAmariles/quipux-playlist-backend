@@ -45,6 +45,27 @@ class StartupConfigurationTest {
                 .hasStackTraceContaining("GENRE_ERROR_002");
     }
 
+    @ParameterizedTest(name = "{0} = \"{1}\"")
+    @MethodSource("invalidCacheSettings")
+    void refusesToStartWithInvalidGenreCacheSettings(String property, String value) {
+        String[] arguments = {
+                "--server.port=0",
+                "--spring.r2dbc.url=r2dbc:h2:mem:///startup-cache-test?options=DB_CLOSE_DELAY=-1",
+                "--playlist.genres.cache.enabled=true",
+                "--" + property + "=" + value};
+
+        assertThatThrownBy(() -> SpringApplication.run(PlaylistApplication.class, arguments).close())
+                .hasStackTraceContaining("GENRE_ERROR_002");
+    }
+
+    private static Stream<Arguments> invalidCacheSettings() {
+        return Stream.of(
+                Arguments.of("playlist.genres.cache.ttl", "0s"),
+                Arguments.of("playlist.genres.cache.ttl", "-1s"),
+                Arguments.of("playlist.genres.cache.timeout", "0s"),
+                Arguments.of("playlist.genres.cache.key", "   "));
+    }
+
     private static Stream<Arguments> invalidSettings() {
         String secret = "playlist.security.jwt.secret";
         String userPassword = "playlist.security.demo-users.user-password";

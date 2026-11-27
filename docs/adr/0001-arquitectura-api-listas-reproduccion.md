@@ -163,6 +163,7 @@ springdoc-openapi para WebFlux, con el esquema Bearer JWT declarado.
 
 - Se cachea la respuesta de Spotify con TTL configurable (inicial: 24 h), mediante el cliente reactivo.
 - Si Redis falla, se consulta el origen. La caché no puede tumbar la API.
+- **Concreción (2026-11-27, HU-10):** el puerto `GenreCachePort` se implementa con `ReactiveStringRedisTemplate` (Lettuce) serializando el catálogo saneado de Spotify como arreglo JSON bajo `playlist:genres:spotify` (`GENRES_CACHE_TTL=24h`, timeout `GENRES_CACHE_TIMEOUT=1s` por operación); `LOCAL` y respuestas vacías nunca se cachean; `management.health.redis.enabled: false` mantiene `/actuator/health/liveness` y `/readiness` en `200` si Redis cae; y `bootstrap` incluye pruebas con Testcontainers (`redis:8.12.0-alpine`), WireMock y `BlockHound`.
 
 ### 6. Kafka para eventos de dominio
 
@@ -185,6 +186,7 @@ springdoc-openapi para WebFlux, con el esquema Bearer JWT declarado.
   puertos se publican solo en la máquina local. nginx reenvía `/api` con la ruta tal como llega, sin recodificarla.
 - **Concreción (2026-11-27, HU-08):** las imágenes usan `eclipse-temurin:21.0.13.1_2-jre-alpine-3.24` (backend) y `nginxinc/nginx-unprivileged:1.31.7-alpine` (frontend, rama principal 1.31), ejecutando `apk upgrade --no-cache` en la etapa final como `root` y volviendo a usuario sin privilegios (`10001:10001` y `101`) para pasar Trivy.
 - **Concreción (2026-11-27, HU-09):** el clúster local se levanta con `kind` (`quipux-playlist`) y **Argo CD `v3.5.9`** (`argocd/application.yaml` sobre `main`/`k8s` con `prune: true` y `selfHeal: true`). En el backend, `spring-boot-starter-actuator` expone sin token únicamente `GET /actuator/health/liveness` y `GET /actuator/health/readiness` (`show-details: never`, cadena `SecurityWebFilterChain` dedicada antes de `apiSecurityFilterChain`, sin bloqueo bajo `BlockHound`), dejando `/actuator/health` y `/actuator/**` protegidos con `401`. Los pods corren endurecidos (`readOnlyRootFilesystem: true`, `capabilities.drop: ["ALL"]`, `seccompProfile: RuntimeDefault`) con `emptyDir` en `/tmp` (backend) y en `/etc/nginx/conf.d`, `/var/cache/nginx` y `/tmp` (frontend), y `API_URL` en `ConfigMap` usa el FQDN `http://api.quipux-playlist.svc.cluster.local:8080` requerido por el `resolver` de nginx en Kubernetes.
+- **Concreción (2026-11-27, HU-10):** se añade el servicio `redis` (`redis:8.12.0-alpine`, `--save "" --appendonly no`) en `compose/compose.yaml` sin `depends_on` bloqueante en `api`, y en `k8s/` mediante `redis-deployment.yaml` (UID `999`, `readOnlyRootFilesystem: true`, `emptyDir` en `/tmp`), `redis-service.yaml` (`ClusterIP:6379`) y variables de caché en `configmap.yaml`.
 
 ### 8. Contrato y modelo de datos
 

@@ -7,6 +7,13 @@ spring:
   sql:
     init:
       mode: always
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: ${REDIS_TIMEOUT:1s}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:1s}
   ai:
     # Every model type of the starter is off by default: any of them left on requires an API key to start.
     model:
@@ -57,6 +64,11 @@ playlist:
     timeout: ${SPOTIFY_TIMEOUT:3s}
   genres:
     local-file: classpath:local-genres.properties
+    cache:
+      enabled: ${GENRES_CACHE_ENABLED:true}
+      key: ${GENRES_CACHE_KEY:playlist:genres:spotify}
+      ttl: ${GENRES_CACHE_TTL:24h}
+      timeout: ${GENRES_CACHE_TIMEOUT:1s}
   ai:
     default-recommendations-file: classpath:default-recommendations.properties
     timeout: ${AI_TIMEOUT:30s}
@@ -77,6 +89,9 @@ playlist:
       open-duration: 30s
 
 management:
+  health:
+    redis:
+      enabled: false
   endpoints:
     web:
       exposure:

@@ -213,10 +213,10 @@ Basado en el ADR-0001. Se prioriza la calidad sobre el plazo: las horas (16 en t
 ### HU-10: Caché de géneros en Redis
 **Como** responsable del sistema, **quiero** cachear los géneros, **para** reducir llamadas a Spotify.
 
-- [ ] La segunda consulta no llama a Spotify mientras dure el TTL.
-- [ ] Con Redis caído, la API sigue respondiendo.
-- [ ] La lista de respaldo no se cachea.
-- [ ] Las pruebas con Testcontainers cubren el acierto de caché, la expiración del TTL y Redis caído.
+- [x] La segunda consulta no llama a Spotify mientras dure el TTL.
+- [x] Con Redis caído, la API sigue respondiendo.
+- [x] La lista de respaldo no se cachea.
+- [x] Las pruebas con Testcontainers cubren el acierto de caché, la expiración del TTL y Redis caído.
 
 ### HU-11: Eventos en Kafka
 **Como** auditor, **quiero** un evento por cada creación y borrado, **para** tener trazabilidad.
