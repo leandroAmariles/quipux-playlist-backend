@@ -69,4 +69,18 @@ class KafkaPlaylistAuditConsumerTest {
             assertThat(event.getFormattedMessage()).contains("EVENT_ERROR_001");
         });
     }
+
+    @Test
+    void warnsAndSkipsAnUnparseableOccurredAtWithoutEchoingIt() {
+        consumer.onMessage("""
+                {"eventId":"550e8400-e29b-41d4-a716-446655440000","eventType":"PlaylistDeleted",\
+                "playlistName":"Rock","occurredAt":"yesterday"}""");
+
+        assertThat(appender.list).singleElement().satisfies(event -> {
+            assertThat(event.getLevel()).isEqualTo(Level.WARN);
+            assertThat(event.getFormattedMessage())
+                    .contains("EVENT_ERROR_001", "invalid occurredAt")
+                    .doesNotContain("yesterday");
+        });
+    }
 }

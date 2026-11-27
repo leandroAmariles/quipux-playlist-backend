@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.3.0](https://github.com/leandroAmariles/quipux-playlist-backend/compare/v0.2.1...v0.3.0) (2026-11-27)
+
+
+### Features
+
+* **HU-10:** cache Spotify genres in Redis ([bdc2dd1](https://github.com/leandroAmariles/quipux-playlist-backend/commit/bdc2dd1a7de8ff512f1232dadfccfefa7655884e))
+* **HU-10:** cache Spotify genres in Redis ([9fa775e](https://github.com/leandroAmariles/quipux-playlist-backend/commit/9fa775e25b7edbe560c9a64ba9b702a87899ce32))
+* **HU-11:** publish and audit playlist events in Kafka ([9de3e53](https://github.com/leandroAmariles/quipux-playlist-backend/commit/9de3e53ad83e3ceab84d591391d65ccd58fc5c25))
+* **HU-11:** publish and audit playlist events in Kafka ([bc15e89](https://github.com/leandroAmariles/quipux-playlist-backend/commit/bc15e894ccef5a0641908898f0dba018fc3ba076))
+* **HU-13:** recommend songs from a catalog indexed in pgvector ([311f7ac](https://github.com/leandroAmariles/quipux-playlist-backend/commit/311f7ac6b73aecc06c1a715c94df4a8b32808773))
+* **HU-13:** recommendations over a song catalog with pgvector ([b1ec807](https://github.com/leandroAmariles/quipux-playlist-backend/commit/b1ec807d4c674cb32cbc6104d3e681a24228aece))
+
+
+### Bug Fixes
+
+* **HU-11:** generate event ids without blocking the event loop ([fb5e89f](https://github.com/leandroAmariles/quipux-playlist-backend/commit/fb5e89f4f21e147823d03f80d3d8489f520154f8))
+
+
+### Documentation
+
+* **HU-13:** record the verification with main merged ([6066a6c](https://github.com/leandroAmariles/quipux-playlist-backend/commit/6066a6cb74effeff5264c33defd956d010785878))
+* **HU-13:** specify and document the catalog recommendations ([e9dd417](https://github.com/leandroAmariles/quipux-playlist-backend/commit/e9dd417edd14fd9166bb71f8437716b3e456547f))
+
 ## [0.2.1](https://github.com/leandroAmariles/quipux-playlist-backend/compare/v0.2.0...v0.2.1) (2026-11-27)
 
 

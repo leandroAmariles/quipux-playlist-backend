@@ -12,7 +12,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.blockhound.BlockHound;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -40,6 +42,16 @@ abstract class ApiTestSupport {
         StepVerifier.create(tokenOf(DemoUser.ADMIN.username(), adminPassword))
                 .assertNext(token -> webClient = clientWith(token))
                 .verifyComplete();
+    }
+
+    /**
+     * Installs BlockHound, once the warm-up is over, for the rest of the JVM. The scheduler threads of the warm-up
+     * wait inside the JDK, and instrumenting them there ends them with {@code IllegalMonitorStateException}, which
+     * can leave a test waiting forever: they are discarded first, and new ones start after the installation.
+     */
+    protected static void installBlockHound() {
+        Schedulers.shutdownNow();
+        BlockHound.install();
     }
 
     protected String baseUrl() {

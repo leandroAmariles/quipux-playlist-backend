@@ -18,7 +18,6 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
-import reactor.blockhound.BlockHound;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -97,7 +96,7 @@ class RecommendationsCatalogApiTest extends AiApiTestSupport {
         StepVerifier.create(everyOutcome("blocking-warm-up"))
                 .expectNextCount(3)
                 .verifyComplete();
-        BlockHound.install();
+        installBlockHound();
 
         // A blocking call in the search would leave the default list instead of the first two.
         StepVerifier.create(everyOutcome("blocking-measured"))
@@ -108,14 +107,14 @@ class RecommendationsCatalogApiTest extends AiApiTestSupport {
 
     private Flux<Object> everyOutcome(String name) {
         return Flux.concat(
-                Mono.fromRunnable(() -> {
+                stubbing(() -> {
                     EmbeddingsStub.answersOn(LITELLM);
                     modelAnswers(suggestions("c1"));
                 }),
                 originOf(name + "-ai"),
-                Mono.fromRunnable(() -> gatewayAnswers(aResponse().withStatus(500))),
+                stubbing(() -> gatewayAnswers(aResponse().withStatus(500))),
                 originOf(name + "-similar"),
-                Mono.fromRunnable(() -> LITELLM.stubFor(
+                stubbing(() -> LITELLM.stubFor(
                         post(urlEqualTo(EmbeddingsStub.PATH)).willReturn(aResponse().withStatus(500)))),
                 originOf(name + "-defaults"));
     }

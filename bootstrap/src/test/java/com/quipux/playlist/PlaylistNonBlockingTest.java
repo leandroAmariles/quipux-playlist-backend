@@ -15,7 +15,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.blockhound.BlockHound;
 import reactor.blockhound.BlockingOperationError;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -58,7 +57,7 @@ class PlaylistNonBlockingTest extends SpotifyApiTestSupport {
         StepVerifier.create(everyHealthProbe())
                 .expectNext(200, 200)
                 .verifyComplete();
-        BlockHound.install();
+        installBlockHound();
     }
 
     @Test

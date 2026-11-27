@@ -11,7 +11,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
-import reactor.blockhound.BlockHound;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -43,7 +42,7 @@ class GenreCacheNonBlockingTest extends SpotifyApiTestSupport {
                 .expectNextCount(1)
                 .thenConsumeWhile(status -> true)
                 .verifyComplete();
-        BlockHound.install();
+        installBlockHound();
     }
 
     @AfterAll
