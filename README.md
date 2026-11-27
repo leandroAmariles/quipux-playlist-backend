@@ -2,7 +2,8 @@
 
 API REST reactiva para gestionar listas de reproducción de música.
 
-**En construcción:** están las operaciones sobre listas, la autenticación y los géneros. Falta la aplicación web.
+**En construcción:** están las operaciones sobre listas, la autenticación, los géneros y la
+[aplicación web](https://github.com/leandroAmariles/quipux-playlist-frontend).
 
 ## API
 
