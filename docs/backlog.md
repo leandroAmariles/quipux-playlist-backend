@@ -170,24 +170,24 @@ Basado en el ADR-0001. Se prioriza la calidad sobre el plazo: las horas (16 en t
 **Como** responsable del sistema, **quiero** validar cada cambio y generar versiones automáticamente, **para** detectar errores y vulnerabilidades y saber qué se despliega.
 
 **Integración continua**
-- [ ] En cada PR y push a `main` se compila y se prueba backend y frontend.
-- [ ] El CI del backend ejecuta `mvn verify`, con cobertura, Checkstyle y las pruebas con Testcontainers que existan.
-- [ ] Qodana (`qodana-jvm-community`) analiza el backend y ESLint el frontend.
-- [ ] Trivy revisa dependencias y secretos, y falla ante `HIGH` o `CRITICAL` con corrección disponible.
-- [ ] Las acciones de terceros están fijadas por SHA de commit.
-- [ ] Cada workflow declara permisos mínimos.
-- [ ] `main` está protegida en los tres repositorios y exige PR; en backend y frontend exige además el CI en verde.
+- [x] En cada PR y push a `main` se compila y se prueba backend y frontend.
+- [x] El CI del backend ejecuta `mvn verify`, con cobertura, Checkstyle y las pruebas con Testcontainers que existan.
+- [x] Qodana (`qodana-jvm-community`) analiza el backend y ESLint el frontend.
+- [x] Trivy revisa dependencias y secretos, y falla ante `HIGH` o `CRITICAL` con corrección disponible.
+- [x] Las acciones de terceros están fijadas por SHA de commit.
+- [x] Cada workflow declara permisos mínimos.
+- [x] `main` está protegida en los tres repositorios y exige PR; en backend y frontend exige además el CI en verde.
 
 **Actualización de dependencias**
-- [ ] Dependabot está configurado en los tres repositorios para los ecosistemas que usa cada uno (Maven, npm, Docker y GitHub Actions).
-- [ ] Sus commits siguen Conventional Commits.
-- [ ] Cada PR pasa el CI antes de fusionarse (en infra, desde HU-09).
+- [x] Dependabot está configurado en los tres repositorios para los ecosistemas que usa cada uno (Maven, npm, Docker y GitHub Actions).
+- [x] Sus commits siguen Conventional Commits.
+- [x] Cada PR pasa el CI antes de fusionarse (en infra, desde HU-09).
 
 **Releases e imágenes**
-- [ ] release-please abre el PR de release en backend y frontend, con el CHANGELOG.
-- [ ] release-please usa un token propio del repositorio, y el CI se ejecuta en el PR de release.
-- [ ] Al crearse una release, el mismo workflow construye la imagen, la analiza con Trivy y la publica en GHCR con la versión como tag.
-- [ ] Las imágenes se pueden descargar desde el clúster (paquetes públicos o credencial configurada).
+- [x] release-please abre el PR de release en backend y frontend, con el CHANGELOG.
+- [x] release-please usa un token propio del repositorio, y el CI se ejecuta en el PR de release.
+- [x] Al crearse una release, el mismo workflow construye la imagen, la analiza con Trivy y la publica en GHCR con la versión como tag.
+- [x] Las imágenes se pueden descargar desde el clúster (paquetes públicos o credencial configurada).
 
 ### HU-09: Kubernetes y Argo CD
 **Como** responsable de operaciones, **quiero** manifiestos con Kustomize en el repositorio de infra aplicados por Argo CD, **para** desplegar de forma repetible y solo mediante Git.
