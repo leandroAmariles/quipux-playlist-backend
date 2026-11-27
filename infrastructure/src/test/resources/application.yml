@@ -10,3 +10,5 @@ playlist:
   security:
     jwt:
       secret: fake-signing-key-only-for-infrastructure-tests
+  events:
+    enabled: false
