@@ -29,7 +29,7 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <blockhound.version>1.0.19.RELEASE</blockhound.version>
         <wiremock.version>3.13.2</wiremock.version>
-        <springdoc.version>3.2.0</springdoc.version>
+        <springdoc.version>3.2.1</springdoc.version>
         <spring-ai.version>2.0.3</spring-ai.version>
         <!-- The version springdoc is built with; Spring AI brings older annotations. -->
         <swagger.version>2.2.55</swagger.version>
