@@ -108,14 +108,14 @@ class RecommendationsCatalogApiTest extends AiApiTestSupport {
 
     private Flux<Object> everyOutcome(String name) {
         return Flux.concat(
-                Mono.fromRunnable(() -> {
+                stubbing(() -> {
                     EmbeddingsStub.answersOn(LITELLM);
                     modelAnswers(suggestions("c1"));
                 }),
                 originOf(name + "-ai"),
-                Mono.fromRunnable(() -> gatewayAnswers(aResponse().withStatus(500))),
+                stubbing(() -> gatewayAnswers(aResponse().withStatus(500))),
                 originOf(name + "-similar"),
-                Mono.fromRunnable(() -> LITELLM.stubFor(
+                stubbing(() -> LITELLM.stubFor(
                         post(urlEqualTo(EmbeddingsStub.PATH)).willReturn(aResponse().withStatus(500)))),
                 originOf(name + "-defaults"));
     }

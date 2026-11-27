@@ -61,12 +61,12 @@ class RecommendationNonBlockingTest extends AiApiTestSupport {
 
     private Flux<String> everyOutcome(String name) {
         return Flux.concat(
-                Mono.fromRunnable(() -> modelAnswers(suggestions("c1"))),
+                stubbing(() -> modelAnswers(suggestions("c1"))),
                 created(name + "-ok").then(outcome(webClient, name + "-ok")),
                 outcome(webClient, name + "-ok"),
-                Mono.fromRunnable(() -> gatewayAnswers(aResponse().withStatus(500))),
+                stubbing(() -> gatewayAnswers(aResponse().withStatus(500))),
                 created(name + "-error").then(outcome(webClient, name + "-error")),
-                Mono.fromRunnable(() -> gatewayAnswers(streamOf("{}").withFixedDelay(3_000))),
+                stubbing(() -> gatewayAnswers(streamOf("{}").withFixedDelay(3_000))),
                 created(name + "-slow").then(outcome(webClient, name + "-slow")),
                 create(playlist(name + "-empty")).then(outcome(webClient, name + "-empty")),
                 outcome(webClient, name + "-unknown"))

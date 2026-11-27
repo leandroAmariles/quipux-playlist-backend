@@ -23,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -59,6 +60,14 @@ abstract class AiApiTestSupport extends ApiTestSupport {
 
     protected static void gatewayAnswers(ResponseDefinitionBuilder response) {
         LITELLM.stubFor(post(urlEqualTo(COMPLETIONS)).willReturn(response));
+    }
+
+    /**
+     * Registers stubs, as a step of a pipeline, on a thread that may block: building one calls
+     * {@code UUID.randomUUID}, which reads /dev/urandom on Linux.
+     */
+    protected static <T> Mono<T> stubbing(Runnable stubs) {
+        return Mono.<T>fromRunnable(stubs).subscribeOn(Schedulers.boundedElastic());
     }
 
     /** A streamed completion that delivers the content in two chunks. */
