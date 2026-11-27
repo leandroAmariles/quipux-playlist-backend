@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/leandroAmariles/quipux-playlist-backend/compare/v0.3.0...v0.3.1) (2026-11-27)
+
+
+### Bug Fixes
+
+* **HU-11:** discard invalid audit timestamps and verify non-blocking publication ([1d55c89](https://github.com/leandroAmariles/quipux-playlist-backend/commit/1d55c89047d7b7540b43f52060e29a623757dc30))
+
 ## [0.3.0](https://github.com/leandroAmariles/quipux-playlist-backend/compare/v0.2.1...v0.3.0) (2026-11-27)
 
 
