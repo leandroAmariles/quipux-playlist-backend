@@ -39,7 +39,7 @@ updates:
     ignore:
       # ragas 0.4 does not import with langchain-community 0.4.
       - dependency-name: langchain-community
-        versions: ["[0.4,)"]
+        versions: [">=0.4"]
 
   - package-ecosystem: github-actions
     directory: /
