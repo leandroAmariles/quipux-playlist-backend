@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+# Maven and its wrapper download from Google's copy of Maven Central, which answers 429 to shared runners.
+env:
+  MAVEN_ARGS: --settings .mvn/mirror-settings.xml
+  MVNW_REPOURL: https://maven-central.storage-download.googleapis.com/maven2
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

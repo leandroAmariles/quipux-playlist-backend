@@ -164,7 +164,7 @@ docker run --rm -v "$PWD:/data/project" jetbrains/qodana-jvm-community:2026.3
 
 ./mvnw clean package -Dmaven.test.skip=true
 trivy rootfs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 bootstrap/target
-trivy fs --scanners secret --severity HIGH,CRITICAL --exit-code 1 --skip-dirs "**/target" .
+trivy fs --scanners secret --offline-scan --severity HIGH,CRITICAL --exit-code 1 --skip-dirs "**/target" .
 ```
 
 En Git Bash, antepón `MSYS_NO_PATHCONV=1` al comando de Docker.
@@ -172,6 +172,14 @@ En Git Bash, antepón `MSYS_NO_PATHCONV=1` al comando de Docker.
 Un hallazgo que no se pueda corregir se excluye de uno en uno y con su motivo: en Trivy, con un `.trivyignore.yaml`
 (campo `statement`) y `trivyignores: .trivyignore.yaml` en el paso del workflow; en Qodana, con `exclude` en
 [`qodana.yaml`](qodana.yaml).
+
+Maven Central limita las descargas por IP (`429 Too Many Requests`) y los ejecutores de GitHub la comparten. Por eso
+`verify`, `trivy` y la construcción de la imagen piden primero a la
+[copia de Maven Central en Google Cloud Storage](https://storage-download.googleapis.com/maven-central/index.html),
+definida en [`.mvn/mirror-settings.xml`](.mvn/mirror-settings.xml). No es un producto con soporte oficial: si no
+entrega un artefacto, Maven lo pide a Maven Central. La descarga del propio Maven (`MVNW_REPOURL` en `ci.yml`) usa
+solo la copia. En tu equipo `./mvnw` sigue yendo a Maven Central; para usar la copia añade
+`--settings .mvn/mirror-settings.xml`. Qodana no está configurado para usarla.
 
 Si una comprobación falla porque no pudo descargar Maven, una dependencia o la base de vulnerabilidades, usa
 **Re-run failed jobs**.
