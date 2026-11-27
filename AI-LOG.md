@@ -161,6 +161,14 @@ Cada entrada dice qué se pidió, qué devolvió la IA, qué se aceptó o correg
 - **Hallazgo:** `llama3.2:3b` escribe motivos falsos (artista, año o género que no son) y como juez no es fiable caso
   a caso.
 
+### P16 · 2026-11-27 · HU-14: cierre, commits y PR
+
+- **Prompt:** "Dale cierre a la HU"
+- **Devuelto:** commits, integración de `main` (HU-10 y HU-11) sin conflictos y PR de backend e infra.
+- **Verificado con `main` integrado:** `mvn verify` en verde (812 pruebas, 1 omitida), 7 pruebas de `evaluation/`, 3 del
+  script y compose válido. No se repitió el recorrido con la pila real ni la evaluación.
+- **Sigue abierto:** revisión de la muestra por una persona, memoria de Docker sin ampliar y motivos falsos del modelo.
+
 ## 2. Prompt de generación del cliente
 
 Redactado el 2026-11-27 (T028) a partir del puerto, el contrato y los requisitos de `spec.md`, sin las conclusiones de la investigación ni del plan.
