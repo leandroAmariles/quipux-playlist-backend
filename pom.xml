@@ -30,6 +30,10 @@
         <blockhound.version>1.0.19.RELEASE</blockhound.version>
         <wiremock.version>3.13.2</wiremock.version>
         <springdoc.version>3.2.0</springdoc.version>
+        <spring-ai.version>2.0.3</spring-ai.version>
+        <!-- The version springdoc is built with; Spring AI brings older annotations. -->
+        <swagger.version>2.2.55</swagger.version>
+        <resilience4j.version>2.4.0</resilience4j.version>
         <jacoco.version>0.8.16</jacoco.version>
         <jacoco.line.minimum>0.80</jacoco.line.minimum>
         <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
@@ -38,6 +42,33 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations</artifactId>
+                <version>${swagger.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations-jakarta</artifactId>
+                <version>${swagger.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-circuitbreaker</artifactId>
+                <version>${resilience4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-reactor</artifactId>
+                <version>${resilience4j.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.mapstruct</groupId>
                 <artifactId>mapstruct</artifactId>

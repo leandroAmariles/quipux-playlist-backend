@@ -292,6 +292,37 @@
           }
         },
         {
+          "name": "Consultar recomendaciones",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"indica el origen\", () => pm.expect(pm.response.json().origen).to.be.oneOf([\"IA\", \"RESPALDO\"]));",
+                  "pm.test(\"trae como máximo 5\", () => pm.expect(pm.response.json().recomendaciones.length).to.be.at.most(5));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/lists/{{listName}}/recommendations",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "Ver todas las listas",
           "event": [
             {
@@ -566,6 +597,35 @@
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/lists/lista-que-no-existe",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Recomendaciones de una lista que no existe",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/lists/lista-que-no-existe/recommendations",
             "auth": {
               "type": "bearer",
               "bearer": [

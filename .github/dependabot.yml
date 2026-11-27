@@ -8,6 +8,12 @@ updates:
       prefix: fix
       prefix-development: chore
       include: scope
+    ignore:
+      # Spring AI 2.0.x supports Spring Boot 4.0 and 4.1 only (ADR-0002): remove both rules together.
+      - dependency-name: "org.springframework.ai:*"
+        versions: ["[2.1,)"]
+      - dependency-name: "org.springframework.boot:*"
+        versions: ["[4.2,)"]
 
   - package-ecosystem: docker
     directory: /

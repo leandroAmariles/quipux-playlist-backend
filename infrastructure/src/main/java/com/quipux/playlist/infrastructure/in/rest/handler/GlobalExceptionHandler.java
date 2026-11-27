@@ -1,6 +1,7 @@
 package com.quipux.playlist.infrastructure.in.rest.handler;
 
 import com.quipux.playlist.domain.exception.BusinessException;
+import com.quipux.playlist.domain.exception.RecommendationRateLimitException;
 import com.quipux.playlist.domain.model.enums.ErrorMessageEnum;
 import com.quipux.playlist.domain.model.enums.ResponseCodeEnum;
 import org.slf4j.Logger;
@@ -24,6 +25,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ProblemDetail handleBusinessException(BusinessException exception) {
         return ProblemDetails.of(exception.responseCode(), exception.getMessage());
+    }
+
+    @ExceptionHandler(RecommendationRateLimitException.class)
+    public ResponseEntity<ProblemDetail> handleRateLimit(RecommendationRateLimitException exception) {
+        ProblemDetail problem = ProblemDetails.of(exception.responseCode(), exception.getMessage());
+        return ResponseEntity.status(problem.getStatus())
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(exception.retryAfterSeconds()))
+                .body(problem);
     }
 
     @ExceptionHandler(Exception.class)

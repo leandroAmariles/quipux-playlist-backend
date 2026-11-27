@@ -95,6 +95,7 @@ class OpenApiContractTest extends ApiTestSupport {
                         .containsExactly(MediaType.APPLICATION_JSON_VALUE);
                 assertThat(response.path("headers").has(HttpHeaders.LOCATION)).isEqualTo("201".equals(status));
             }
+            assertThat(response.path("headers").has(HttpHeaders.RETRY_AFTER)).isEqualTo("429".equals(status));
         });
     }
 

@@ -17,6 +17,8 @@ public enum ApiResponseDocEnum {
             ResponseCodeEnum.PLAYLIST_ALREADY_EXISTS),
     CONTENT_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "El cuerpo supera el tamaño máximo", null),
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "El cuerpo no es JSON", null),
+    TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "Demasiadas peticiones de recomendaciones",
+            ResponseCodeEnum.RECOMMENDATION_RATE_LIMITED),
     UNEXPECTED_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Error inesperado", ResponseCodeEnum.UNEXPECTED_ERROR);
 
     private static final String CODE_FORMAT = "%s (%s)";

@@ -26,6 +26,7 @@ public class OpenApiContractCustomizer implements OpenApiCustomizer {
     private static final String PROBLEM = "Problem";
     private static final String PROBLEM_REF = "#/components/schemas/" + PROBLEM;
     private static final String LOCATION_DESCRIPTION = "Dirección relativa de la lista creada";
+    private static final String RETRY_AFTER_DESCRIPTION = "Segundos que hay que esperar";
     private static final String GENERATED_STATUS = "200";
     private static final String TEXT = "string";
     private static final String NUMBER = "integer";
@@ -98,9 +99,14 @@ public class OpenApiContractCustomizer implements OpenApiCustomizer {
     private static ApiResponse problemOf(ApiResponseDocEnum error) {
         io.swagger.v3.oas.models.media.MediaType body = new io.swagger.v3.oas.models.media.MediaType()
                 .schema(new JsonSchema().$ref(PROBLEM_REF));
-        return new ApiResponse()
+        ApiResponse response = new ApiResponse()
                 .description(error.description())
                 .content(new Content().addMediaType(MediaType.APPLICATION_PROBLEM_JSON_VALUE, body));
+        if (error.status() == HttpStatus.TOO_MANY_REQUESTS) {
+            response.addHeaderObject(HttpHeaders.RETRY_AFTER,
+                    new Header().description(RETRY_AFTER_DESCRIPTION).schema(typed(NUMBER)));
+        }
+        return response;
     }
 
     private static String codeOf(HttpStatus status) {

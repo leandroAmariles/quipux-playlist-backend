@@ -21,6 +21,13 @@ public class LocalGenreProviderAdapter implements GenreProviderPort {
         this.genres = load(file);
     }
 
+    /**
+     * The same list as a catalog, for what needs it while the application starts.
+     */
+    public GenreCatalog catalog() {
+        return new GenreCatalog(GenreSource.LOCAL, genres);
+    }
+
     @Override
     public Mono<List<String>> genres() {
         return Mono.just(genres);

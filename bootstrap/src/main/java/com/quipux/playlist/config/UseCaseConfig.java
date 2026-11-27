@@ -5,11 +5,16 @@ import com.quipux.playlist.application.port.in.DeletePlaylistPort;
 import com.quipux.playlist.application.port.in.GetGenresPort;
 import com.quipux.playlist.application.port.in.GetPlaylistPort;
 import com.quipux.playlist.application.port.in.GetPlaylistsPort;
+import com.quipux.playlist.application.port.in.GetRecommendationsPort;
 import com.quipux.playlist.application.port.in.LoginPort;
 import com.quipux.playlist.application.port.in.RegisterDemoUsersPort;
+import com.quipux.playlist.application.port.out.DefaultRecommendationsPort;
 import com.quipux.playlist.application.port.out.GenreProviderPort;
 import com.quipux.playlist.application.port.out.PasswordHasherPort;
 import com.quipux.playlist.application.port.out.PlaylistRepositoryPort;
+import com.quipux.playlist.application.port.out.RecommendationCachePort;
+import com.quipux.playlist.application.port.out.RecommendationProviderPort;
+import com.quipux.playlist.application.port.out.RequestQuotaPort;
 import com.quipux.playlist.application.port.out.TokenIssuerPort;
 import com.quipux.playlist.application.port.out.UserRepositoryPort;
 import com.quipux.playlist.application.usecase.CreatePlaylistUseCase;
@@ -17,6 +22,7 @@ import com.quipux.playlist.application.usecase.DeletePlaylistUseCase;
 import com.quipux.playlist.application.usecase.GetGenresUseCase;
 import com.quipux.playlist.application.usecase.GetPlaylistUseCase;
 import com.quipux.playlist.application.usecase.GetPlaylistsUseCase;
+import com.quipux.playlist.application.usecase.GetRecommendationsUseCase;
 import com.quipux.playlist.application.usecase.LoginUseCase;
 import com.quipux.playlist.application.usecase.RegisterDemoUsersUseCase;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -55,6 +61,16 @@ public class UseCaseConfig {
     @Bean
     RegisterDemoUsersPort registerDemoUsersPort(UserRepositoryPort repository, PasswordHasherPort passwordHasher) {
         return new RegisterDemoUsersUseCase(repository, passwordHasher);
+    }
+
+    @Bean
+    GetRecommendationsPort getRecommendationsPort(
+            PlaylistRepositoryPort repository,
+            RecommendationProviderPort provider,
+            DefaultRecommendationsPort defaultRecommendations,
+            RecommendationCachePort cache,
+            RequestQuotaPort quota) {
+        return new GetRecommendationsUseCase(repository, provider, defaultRecommendations, cache, quota);
     }
 
     @Bean

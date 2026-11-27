@@ -7,9 +7,34 @@ spring:
   sql:
     init:
       mode: always
+  ai:
+    # Every model type of the starter is off by default: any of them left on requires an API key to start.
+    model:
+      chat: ${AI_PROVIDER:none}
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+    openai:
+      base-url: ${AI_BASE_URL:http://localhost:4000/v1}
+      api-key: ${AI_API_KEY:}
+      max-retries: 0
+      timeout: ${playlist.ai.timeout}
+      chat:
+        model: ${playlist.ai.chat-model}
+        max-tokens: ${playlist.ai.max-output-tokens}
+        response-format:
+          type: JSON_OBJECT
 
 server:
   port: 8080
+
+logging:
+  level:
+    # It records the error body of the gateway, which may repeat the prompt.
+    org.springframework.ai.chat.model.MessageAggregator: "off"
 
 springdoc:
   default-produces-media-type: application/json
@@ -32,3 +57,21 @@ playlist:
     timeout: ${SPOTIFY_TIMEOUT:3s}
   genres:
     local-file: classpath:local-genres.properties
+  ai:
+    default-recommendations-file: classpath:default-recommendations.properties
+    timeout: ${AI_TIMEOUT:30s}
+    chat-model: ${AI_CHAT_MODEL:recomendador-chat}
+    prompt-version: v1
+    max-songs: 50
+    max-field-length: 100
+    max-output-tokens: 600
+    max-concurrent-calls: 2
+    requests-per-minute: 10
+    cache:
+      ttl: 24h
+      max-entries: 500
+    circuit-breaker:
+      window: 10
+      minimum-calls: 5
+      failure-rate: 50
+      open-duration: 30s
