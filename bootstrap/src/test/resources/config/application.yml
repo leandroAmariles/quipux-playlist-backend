@@ -19,3 +19,8 @@ playlist:
   spotify:
     client-id: ""
     client-secret: ""
+  genres:
+    cache:
+      enabled: false
+  events:
+    enabled: false

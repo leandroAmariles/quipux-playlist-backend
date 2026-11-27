@@ -54,6 +54,17 @@ class ErrorMessageEnumTest {
     }
 
     @Test
+    void tiesEventMessagesToTheirCodes() {
+        assertThat(ErrorMessageEnum.EVENT_PUBLISH_UNAVAILABLE.responseCode().code()).isEqualTo("EVENT_ERROR_001");
+        assertThat(ErrorMessageEnum.EVENT_PUBLISH_TIMEOUT.responseCode().code()).isEqualTo("EVENT_ERROR_001");
+        assertThat(ErrorMessageEnum.EVENT_SERIALIZATION_FAILED.responseCode().code()).isEqualTo("EVENT_ERROR_001");
+        assertThat(ErrorMessageEnum.EVENT_PUBLISH_IGNORED.responseCode().code()).isEqualTo("EVENT_ERROR_001");
+        assertThat(ErrorMessageEnum.EVENT_MESSAGE_UNREADABLE.responseCode().code()).isEqualTo("EVENT_ERROR_001");
+        assertThat(ErrorMessageEnum.INVALID_EVENT_DURATION.responseCode().code()).isEqualTo("EVENT_ERROR_002");
+        assertThat(ErrorMessageEnum.INVALID_EVENT_SETTING.responseCode().code()).isEqualTo("EVENT_ERROR_002");
+    }
+
+    @Test
     void fillsTheValuesOfAMessage() {
         assertThat(ErrorMessageEnum.FIELD_REQUIRED.format(FieldNameEnum.PASSWORD.label()))
                 .isEqualTo("The password is required");

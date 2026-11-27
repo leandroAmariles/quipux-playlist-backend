@@ -57,6 +57,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-postgresql</artifactId>
             <scope>test</scope>
@@ -64,6 +69,11 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-kafka</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -85,6 +95,8 @@
                                 <exclude>**/PlaylistNonBlockingTest.java</exclude>
                                 <exclude>**/RecommendationNonBlockingTest.java</exclude>
                                 <exclude>**/RecommendationsCatalogApiTest.java</exclude>
+                                <exclude>**/GenreCacheNonBlockingTest.java</exclude>
+                                <exclude>**/PlaylistEventsNonBlockingTest.java</exclude>
                             </excludes>
                         </configuration>
                     </execution>
@@ -121,6 +133,30 @@
                         <configuration>
                             <includes>
                                 <include>**/RecommendationsCatalogApiTest.java</include>
+                            </includes>
+                            <argLine>@{argLine} -XX:+AllowRedefinitionToAddDeleteMethods -XX:+EnableDynamicAgentLoading</argLine>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>non-blocking-genre-cache-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/GenreCacheNonBlockingTest.java</include>
+                            </includes>
+                            <argLine>@{argLine} -XX:+AllowRedefinitionToAddDeleteMethods -XX:+EnableDynamicAgentLoading</argLine>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>non-blocking-playlist-events-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/PlaylistEventsNonBlockingTest.java</include>
                             </includes>
                             <argLine>@{argLine} -XX:+AllowRedefinitionToAddDeleteMethods -XX:+EnableDynamicAgentLoading</argLine>
                         </configuration>
