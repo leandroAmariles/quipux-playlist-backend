@@ -1,0 +1,10 @@
+**
+!pom.xml
+!domain/pom.xml
+!domain/src
+!application/pom.xml
+!application/src
+!infrastructure/pom.xml
+!infrastructure/src
+!bootstrap/pom.xml
+!bootstrap/src

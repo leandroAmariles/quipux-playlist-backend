@@ -161,10 +161,10 @@ Basado en el ADR-0001. Se prioriza la calidad sobre el plazo: las horas (16 en t
 ### HU-07: Docker y Compose
 **Como** evaluador, **quiero** levantar todo con un comando, **para** evitar instalaciones manuales.
 
-- [ ] Dockerfiles multietapa en backend y frontend; nginx redirige las llamadas a la API.
-- [ ] El `docker-compose` está en el repositorio de infra y construye desde las carpetas hermanas.
-- [ ] `docker compose up` deja la aplicación usable.
-- [ ] WireMock se puede activar como sustituto de Spotify.
+- [x] Dockerfiles multietapa en backend y frontend; nginx redirige las llamadas a la API.
+- [x] El `docker-compose` está en el repositorio de infra y construye desde las carpetas hermanas.
+- [x] `docker compose up` deja la aplicación usable.
+- [x] WireMock se puede activar como sustituto de Spotify.
 
 ### HU-08: CI, dependencias y releases
 **Como** responsable del sistema, **quiero** validar cada cambio y generar versiones automáticamente, **para** detectar errores y vulnerabilidades y saber qué se despliega.
