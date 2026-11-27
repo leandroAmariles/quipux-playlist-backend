@@ -340,7 +340,7 @@ versión del catálogo se vuelve a llamar.
   `README.md`
 - [X] T076 Comprobar que cada criterio de HU-13 tiene prueba o comprobación anotada (SC-009) y marcarlos en
   `../backlog-ia.md`
-- [ ] T077 Integrar `origin/main` en ambos repositorios, ejecutar `./mvnw verify` con Docker, confirmar que las pruebas
+- [X] T077 Integrar `origin/main` en ambos repositorios, ejecutar `./mvnw verify` con Docker, confirmar que las pruebas
   de Docker no se omitieron, la cobertura de 80 % por módulo y que no hay secretos en archivos ni historial; anotar el
   resultado en `AI-LOG.md`
 

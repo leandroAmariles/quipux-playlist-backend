@@ -125,6 +125,16 @@ Cada entrada dice qué se pidió, qué devolvió la IA, qué se aceptó o correg
   pruebas de la API) y dos líneas largas.
 - **Verificación**: `./mvnw verify` con Docker, sin modelos ni clave. No se probó con los modelos reales.
 
+### P13 · 2026-11-27 · Retirada de canciones y PR de HU-13
+
+- **Prompt**: «Retiralas y luego genera los PRS»
+- **Respuesta**: retiradas las 14 canciones sin coincidencia (quedan 214), commits, `origin/main` integrado en ambos
+  repositorios y PR abiertas.
+- **Aceptado o corregido**: la persona usuaria decidió retirar las canciones en lugar de corregirlas.
+- **Verificación**: con `origin/main` integrado, `./mvnw verify` con Docker en verde, sin pruebas de Docker omitidas (la
+  única omitida solo corre en CI), líneas cubiertas por encima del 95 % en cada módulo, `docker compose config` válido y
+  sin claves ni datos personales en los commits de las ramas.
+
 ## 2. Prompt de generación del cliente
 
 Redactado el 2026-11-27 (T028) a partir del puerto, el contrato y los requisitos de `spec.md`, sin las conclusiones de la investigación ni del plan.
