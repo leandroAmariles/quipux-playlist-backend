@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/leandroAmariles/quipux-playlist-backend/compare/v0.1.0...v0.1.1) (2026-11-27)
+
+
+### Documentation
+
+* **HU-08:** mark HU-08 completed in backlog and update ADR-0001 ([3e3554e](https://github.com/leandroAmariles/quipux-playlist-backend/commit/3e3554e14bc8989b12296709dd16bb54ad44b616))
+
 ## 0.1.0 (2026-11-27)
 
 
